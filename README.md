@@ -4,7 +4,8 @@
   <h3>A production-ready SaaS foundation — auth, wallet, subscriptions, payments, and an 8-provider AI layer, out of the box.</h3>
 
   <p>
-    <img src="https://img.shields.io/badge/Next.js-14-0B1F2A?style=flat-square&logo=next.js&logoColor=white" />
+    <img src="https://img.shields.io/badge/Next.js-16-0B1F2A?style=flat-square&logo=next.js&logoColor=white" />
+    <img src="https://img.shields.io/badge/vulnerabilities-0-1F9D77?style=flat-square" />
     <img src="https://img.shields.io/badge/TypeScript-5.6-1F9D77?style=flat-square&logo=typescript&logoColor=white" />
     <img src="https://img.shields.io/badge/Supabase-Postgres%20%2B%20Auth%20%2B%20RLS-E8B23D?style=flat-square&logo=supabase&logoColor=0B1F2A" />
     <img src="https://img.shields.io/badge/Paystack-Payments-0B1F2A?style=flat-square" />
@@ -45,7 +46,7 @@ It is a **foundation**, not a finished product: no domain tables are included on
 | **Wallet & billing** | Credit wallet with ledger-enforced balances, one-time payments, monthly subscriptions, Paystack webhooks with HMAC verification, automatic feature unlocking |
 | **AI layer** | 8 providers (OpenAI, Gemini, Claude, OpenRouter, Groq, Together AI, Cohere, DeepSeek) behind one interface. A missing key or failed call moves to the next provider automatically — one outage never takes down generation |
 | **Storage** | Supabase Storage for user files, Cloudinary for optimized image delivery and transforms |
-| **Frontend** | Next.js App Router, Tailwind, shadcn/ui-style components, Framer Motion installed and ready, full PWA support |
+| **Frontend** | Next.js App Router, Tailwind, shadcn/ui-style components, Framer Motion installed and ready, full PWA support via a hand-written, dependency-free service worker (no legacy workbox toolchain) |
 | **Deployment** | Cloudflare Pages — no server to manage, edge-served, environment variables set once in the dashboard |
 
 ## Architecture
@@ -72,7 +73,7 @@ It is a **foundation**, not a finished product: no domain tables are included on
 ## Tech stack
 
 ```
-Frontend    Next.js 14 (App Router) · React 18 · TypeScript · Tailwind CSS · shadcn/ui · Framer Motion · PWA
+Frontend    Next.js 16 (App Router) · React 18 · TypeScript · Tailwind CSS · shadcn/ui · Framer Motion · PWA
 Backend     Supabase — Postgres · Auth · Row Level Security · Storage · Edge Functions · Realtime
 Payments    Paystack — one-time, wallet top-up, subscriptions, webhooks
 Media       Cloudinary (image CDN + transforms) + Supabase Storage

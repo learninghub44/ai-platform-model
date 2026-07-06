@@ -1,0 +1,13 @@
+{
+  "name": "Platform",
+  "short_name": "Platform",
+  "description": "Production-ready starter platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F4EE",
+  "theme_color": "#0f6b56",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

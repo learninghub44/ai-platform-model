@@ -49,7 +49,8 @@ create table if not exists public.subscription_plans (
   name text not null,
   description text,
   price_kobo integer not null check (price_kobo >= 0), -- smallest currency unit
-  currency text not null default 'NGN',
+  currency text not null default 'KES'
+    check (currency in ('NGN','USD','GHS','ZAR','KES','XOF')),
   interval text not null default 'monthly' check (interval in ('monthly', 'yearly')),
   features jsonb not null default '[]'::jsonb,
   is_active boolean not null default true,
@@ -83,7 +84,8 @@ create table if not exists public.wallets (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null unique references public.profiles(id) on delete cascade,
   balance_kobo bigint not null default 0 check (balance_kobo >= 0),
-  currency text not null default 'NGN',
+  currency text not null default 'KES'
+    check (currency in ('NGN','USD','GHS','ZAR','KES','XOF')),
   updated_at timestamptz not null default now()
 );
 
@@ -110,7 +112,8 @@ create table if not exists public.payments (
   kind payment_kind not null,
   status payment_status not null default 'pending',
   amount_kobo bigint not null check (amount_kobo > 0),
-  currency text not null default 'NGN',
+  currency text not null default 'KES'
+    check (currency in ('NGN','USD','GHS','ZAR','KES','XOF')),
   reference text not null unique, -- Paystack transaction reference
   paystack_authorization_url text,
   paystack_access_code text,
@@ -373,8 +376,10 @@ create policy "files_crud_own" on public.files
 -- ============================================================================
 -- SEED DATA (safe to run once)
 -- ============================================================================
+-- Prices are in the subunit Paystack expects (major unit * 100).
+-- KES is this account's home currency (Kenya-registered Paystack account).
 insert into public.subscription_plans (code, name, description, price_kobo, currency, interval, features)
 values
-  ('free', 'Free', 'Basic access', 0, 'NGN', 'monthly', '["Core features"]'::jsonb),
-  ('pro_monthly', 'Pro', 'Full access, billed monthly', 500000, 'NGN', 'monthly', '["All features", "Priority support"]'::jsonb)
+  ('free', 'Free', 'Basic access', 0, 'KES', 'monthly', '["Core features"]'::jsonb),
+  ('pro_monthly', 'Pro', 'Full access, billed monthly', 150000, 'KES', 'monthly', '["All features", "Priority support"]'::jsonb)
 on conflict (code) do nothing;

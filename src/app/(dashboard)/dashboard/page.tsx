@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
-function formatMoney(kobo: number, currency = "NGN") {
+function formatMoney(kobo: number, currency = "KES") {
   return (kobo / 100).toLocaleString(undefined, { style: "currency", currency });
 }
 
@@ -39,7 +39,7 @@ export default async function DashboardOverviewPage() {
       .limit(5),
   ]);
 
-  const currency = entitlements?.currency ?? "NGN";
+  const currency = entitlements?.currency ?? "KES";
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-6 py-10">

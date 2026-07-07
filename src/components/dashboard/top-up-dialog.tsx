@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 
 const QUICK_AMOUNTS = [1000, 5000, 10000, 25000];
 
-export function TopUpDialog({ currency = "NGN" }: { currency?: string }) {
+export function TopUpDialog({ currency = "KES" }: { currency?: string }) {
   const [amount, setAmount] = useState<number>(5000);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);

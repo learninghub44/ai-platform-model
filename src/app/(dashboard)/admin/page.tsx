@@ -34,7 +34,7 @@ export default async function AdminPage() {
           <CardHeader>
             <CardDescription>Revenue, last 14 days</CardDescription>
             <p className="font-mono-data text-3xl font-medium">
-              {(totalRevenueKobo / 100).toLocaleString(undefined, { style: "currency", currency: "NGN" })}
+              {(totalRevenueKobo / 100).toLocaleString(undefined, { style: "currency", currency: "KES" })}
             </p>
           </CardHeader>
         </Card>

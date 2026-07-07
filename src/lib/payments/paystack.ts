@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { isEnabledCurrency } from "./currencies";
 
 const BASE_URL = "https://api.paystack.co";
 
@@ -13,18 +14,28 @@ export interface InitializePaymentParams {
   email: string;
   amountKobo: number;
   reference: string;
+  currency?: string; // defaults to DEFAULT_CURRENCY (KES) if omitted
   callbackUrl?: string;
   metadata?: Record<string, unknown>;
   plan?: string; // Paystack plan code, for subscriptions
 }
 
 export async function initializeTransaction(params: InitializePaymentParams) {
+  const currency = params.currency ?? undefined;
+  if (currency && !isEnabledCurrency(currency)) {
+    throw new Error(
+      `Currency "${currency}" is not enabled on this Paystack account. ` +
+        `Enabled currencies: KES, USD.`
+    );
+  }
+
   const res = await fetch(`${BASE_URL}/transaction/initialize`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({
       email: params.email,
       amount: params.amountKobo,
+      currency,
       reference: params.reference,
       callback_url: params.callbackUrl,
       metadata: params.metadata,

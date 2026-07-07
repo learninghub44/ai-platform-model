@@ -5,7 +5,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { TopUpDialog } from "@/components/dashboard/top-up-dialog";
 import { SubscribeButton } from "@/components/dashboard/subscribe-button";
 
-function formatMoney(kobo: number, currency = "NGN") {
+function formatMoney(kobo: number, currency = "KES") {
   return (kobo / 100).toLocaleString(undefined, { style: "currency", currency });
 }
 
@@ -33,7 +33,7 @@ export default async function BillingPage() {
       .limit(20),
   ]);
 
-  const currency = entitlements?.currency ?? "NGN";
+  const currency = entitlements?.currency ?? "KES";
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-6 py-10">

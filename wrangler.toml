@@ -1,0 +1,14 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "ai-platform-model"
+main = ".open-next/worker.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+# Environment variables are set via `wrangler secret put <NAME>` for secrets
+# (SUPABASE_SERVICE_ROLE_KEY, PAYSTACK_SECRET_KEY, AI provider keys, etc.)
+# or directly in the Cloudflare dashboard under Workers & Pages → Settings →
+# Variables, for anything non-sensitive (NEXT_PUBLIC_* values).

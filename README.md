@@ -9,7 +9,7 @@
     <img src="https://img.shields.io/badge/TypeScript-5.6-1F9D77?style=flat-square&logo=typescript&logoColor=white" />
     <img src="https://img.shields.io/badge/Supabase-Postgres%20%2B%20Auth%20%2B%20RLS-E8B23D?style=flat-square&logo=supabase&logoColor=0B1F2A" />
     <img src="https://img.shields.io/badge/Paystack-Payments-0B1F2A?style=flat-square" />
-    <img src="https://img.shields.io/badge/Deploy-Cloudflare%20Pages-1F9D77?style=flat-square&logo=cloudflare&logoColor=white" />
+    <img src="https://img.shields.io/badge/Deploy-Cloudflare%20Workers%20(OpenNext)-1F9D77?style=flat-square&logo=cloudflare&logoColor=white" />
     <img src="https://img.shields.io/badge/License-MIT-E8B23D?style=flat-square" />
   </p>
 </div>
@@ -79,7 +79,7 @@ Backend     Supabase — Postgres · Auth · Row Level Security · Storage · Ed
 Payments    Paystack — one-time, wallet top-up, subscriptions, webhooks
 Media       Cloudinary (image CDN + transforms) + Supabase Storage
 AI          OpenAI · Google Gemini · Anthropic Claude · OpenRouter · Groq · Together AI · Cohere · DeepSeek
-Deploy      Cloudflare Pages
+Deploy      Cloudflare Workers, via the OpenNext Cloudflare adapter
 ```
 
 ## Getting started
@@ -111,7 +111,9 @@ See [`.env.example`](.env.example) for the full list. Grouped summary:
 ## Project structure
 
 ```
-├── docs/                     banner, architecture diagram, UI mockups
+├── docs/                     banner, architecture diagram
+├── wrangler.toml             Cloudflare Workers config (OpenNext deploy target)
+├── open-next.config.ts       OpenNext Cloudflare adapter config
 ├── supabase/
 │   └── migrations/0001_init.sql
 ├── src/
@@ -153,18 +155,29 @@ One migration (`supabase/migrations/0001_init.sql`) creates everything:
 | `/api/payments/webhook` | `POST` | Source of truth — HMAC-verified Paystack events, unlocks wallet credit / subscription state |
 | `/api/ai/generate` | `POST` | Runs the provider failover chain, logs every attempt |
 
-## Deployment — Cloudflare Pages
+## Deployment — Cloudflare
 
-1. Push this repo to GitHub (already done).
-2. In the Cloudflare dashboard: **Workers & Pages → Create → Pages → Connect to Git**, pick `ai-platform-model`.
-3. Build settings:
-   - Framework preset: **Next.js**
-   - Build command: `npm run build`
-   - Build output directory: `.next`
-   - Add the `@cloudflare/next-on-pages` adapter if you need edge runtime routes (`npx @cloudflare/next-on-pages`), or deploy as-is for standard SSR-compatible routes.
-4. Add every variable from `.env.example` under **Settings → Environment variables** (Production and Preview).
-5. Set the Paystack webhook URL to `https://<your-pages-domain>/api/payments/webhook`.
-6. Trigger a deploy — no code changes required.
+Cloudflare's classic "static Pages" build path doesn't run API routes, middleware, or server components — and `@cloudflare/next-on-pages` (the old adapter for that) is deprecated. The current, Cloudflare-recommended way to run a full Next.js app like this one is the **OpenNext Cloudflare adapter**, which builds it for Cloudflare Workers. It shows up under the same **Workers & Pages** dashboard section, so the "deploy to Cloudflare" experience is unchanged even though the tooling underneath isn't classic Pages.
+
+The adapter (`@opennextjs/cloudflare`) and `wrangler` are already devDependencies here, with `wrangler.toml` and `open-next.config.ts` checked in.
+
+**Deploy from your machine or CI:**
+
+```bash
+npm install
+npx wrangler login          # first time only
+npm run cf:deploy           # builds with OpenNext, then wrangler deploy
+```
+
+**Or connect Git for automatic deploys:**
+
+1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Connect to Git** → select `ai-platform-model`.
+2. Build command: `npm run cf:build`. Cloudflare will pick up `wrangler.toml` for the rest.
+3. Add every variable from `.env.example` under **Settings → Variables and Secrets**. Use `npx wrangler secret put <NAME>` locally for anything sensitive (`SUPABASE_SERVICE_ROLE_KEY`, `PAYSTACK_SECRET_KEY`, all AI provider keys) rather than pasting them as plain build variables.
+4. Set the Paystack webhook URL to `https://<your-worker-subdomain>.workers.dev/api/payments/webhook` (or your custom domain, once attached).
+5. Push to `main` — Cloudflare rebuilds and redeploys automatically.
+
+Requires `compatibility_date = "2024-09-23"` or later and the `nodejs_compat` flag — both already set in `wrangler.toml`. This tooling moves fast; if something here looks off by the time you deploy, check [developers.cloudflare.com/workers/framework-guides/web-apps/nextjs](https://developers.cloudflare.com/workers/framework-guides/web-apps/nextjs/) for the latest.
 
 ## Roadmap
 

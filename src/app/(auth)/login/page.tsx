@@ -6,7 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { AuthShell } from "@/components/auth-shell";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,47 +42,58 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Sign in</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <Input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in…" : "Sign in"}
-            </Button>
-          </form>
+    <AuthShell
+      title="Run the money and the model from one ledger."
+      subtitle="Wallets, subscriptions, and AI usage — one console, one source of truth."
+    >
+      <h1 className="font-display text-2xl font-medium">Sign in</h1>
+      <p className="mt-1 text-sm text-muted-foreground">Welcome back — enter your details below.</p>
 
-          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
-            Continue with Google
-          </Button>
+      <form onSubmit={handleSubmit} className="mt-6 space-y-3">
+        <div>
+          <label className="text-xs text-muted-foreground">Email</label>
+          <Input
+            type="email"
+            placeholder="you@company.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">Password</label>
+          <Input
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="mt-1"
+          />
+        </div>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? "Signing in…" : "Sign in"}
+        </Button>
+      </form>
 
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <Link href="/forgot-password" className="hover:underline">
-              Forgot password?
-            </Link>
-            <Link href="/register" className="hover:underline">
-              Create account
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </main>
+      <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="h-px flex-1 bg-border" /> or <div className="h-px flex-1 bg-border" />
+      </div>
+
+      <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+        Continue with Google
+      </Button>
+
+      <div className="mt-6 flex justify-between text-sm text-muted-foreground">
+        <Link href="/forgot-password" className="hover:text-foreground hover:underline">
+          Forgot password?
+        </Link>
+        <Link href="/register" className="hover:text-foreground hover:underline">
+          Create account
+        </Link>
+      </div>
+    </AuthShell>
   );
 }

@@ -46,7 +46,7 @@ It is a **foundation**, not a finished product: no domain tables are included on
 | **Wallet & billing** | Credit wallet with ledger-enforced balances, one-time payments, monthly subscriptions, Paystack webhooks with HMAC verification, automatic feature unlocking |
 | **AI layer** | 8 providers (OpenAI, Gemini, Claude, OpenRouter, Groq, Together AI, Cohere, DeepSeek) behind one interface. A missing key or failed call moves to the next provider automatically — one outage never takes down generation |
 | **Storage** | Supabase Storage for user files, Cloudinary for optimized image delivery and transforms |
-| **Frontend** | Next.js App Router, Tailwind, shadcn/ui-style components, Framer Motion installed and ready, full PWA support via a hand-written, dependency-free service worker (no legacy workbox toolchain) |
+| **Frontend** | Next.js App Router, Tailwind, a small shadcn-style component set, Framer Motion (used for the AI Playground's message transitions), full PWA support via a hand-written, dependency-free service worker |
 | **Deployment** | Cloudflare Pages — no server to manage, edge-served, environment variables set once in the dashboard |
 
 ## Architecture
@@ -57,18 +57,19 @@ It is a **foundation**, not a finished product: no domain tables are included on
 
 ## Interface preview
 
-<table>
-  <tr>
-    <td width="45%"><img src="docs/screenshot-auth.svg" alt="Sign in mockup" width="100%" /></td>
-    <td width="55%"><img src="docs/screenshot-dashboard.svg" alt="Dashboard mockup" width="100%" /></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Sign in</sub></td>
-    <td align="center"><sub>Dashboard — wallet & plan</sub></td>
-  </tr>
-</table>
+The full UI is implemented, not mocked: a marketing landing page, a split-screen auth flow, and a dashboard shell with a persistent sidebar (complete with a live "ledger tape" — a scrolling feed of wallet, subscription, and AI events, which is also the landing page's hero visual).
 
-> These are illustrative UI mockups shipped with the repo, not live screenshots — swap in real ones as the product takes shape.
+| Surface | What's there |
+|---|---|
+| **Landing page** (`/`) | Hero with the ledger tape, feature grid, architecture walkthrough, pricing pulled from the seeded plans |
+| **Auth** (`/login`, `/register`, `/forgot-password`, `/reset-password`) | Split-screen layout, Google OAuth, email verification state, password reset flow |
+| **Dashboard** (`/dashboard`) | Wallet balance, current plan, recent payments and AI calls |
+| **Billing** (`/dashboard/billing`) | Wallet top-up dialog (quick amounts + custom), plan comparison with subscribe buttons, full payment history |
+| **AI Playground** (`/dashboard/ai-playground`) | Chat-style interface hitting the failover chain directly — pick a specific provider or leave it on auto |
+| **Settings** (`/dashboard/settings`) | Profile (name + Cloudinary-backed avatar upload), password change, light/dark theme toggle |
+| **Admin** (`/admin`) | Revenue chart, user list with promote/demote, role-gated via middleware + RLS |
+
+Run `npm run dev` and click through it — there's nothing left to imagine.
 
 ## Tech stack
 
@@ -169,8 +170,7 @@ One migration (`supabase/migrations/0001_init.sql`) creates everything:
 
 - [ ] Domain-specific product tables (define once the product spec is set)
 - [ ] Transactional email beyond Supabase's built-in auth emails
-- [ ] Real UI screenshots replacing the mockups in `docs/`
-- [ ] Framer Motion page-transition pass
+- [ ] Mobile-native drawer nav (currently a lightweight `<details>`-based menu)
 
 ## License
 

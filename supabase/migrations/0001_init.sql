@@ -246,6 +246,7 @@ select
   p.email,
   p.role,
   w.balance_kobo,
+  w.currency,
   s.id as subscription_id,
   s.status as subscription_status,
   sp.code as plan_code,

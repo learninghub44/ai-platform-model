@@ -42,6 +42,12 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        ink: {
+          DEFAULT: "hsl(var(--ink))",
+          foreground: "hsl(var(--ink-foreground))",
+          muted: "hsl(var(--ink-muted))",
+          border: "hsl(var(--ink-border))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

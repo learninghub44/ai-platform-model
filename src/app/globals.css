@@ -4,44 +4,65 @@
 
 @layer base {
   :root {
-    --background: 40 20% 97%;
-    --foreground: 20 14% 12%;
+    /* Canvas + chrome */
+    --background: 150 12% 93%;      /* Mist */
+    --foreground: 200 44% 10%;      /* Ink */
     --card: 0 0% 100%;
-    --card-foreground: 20 14% 12%;
-    --primary: 165 65% 28%;
+    --card-foreground: 200 44% 10%;
+
+    /* Brand */
+    --primary: 160 66% 36%;         /* Signal green */
     --primary-foreground: 0 0% 100%;
-    --secondary: 40 15% 92%;
-    --secondary-foreground: 20 14% 12%;
-    --muted: 40 15% 92%;
-    --muted-foreground: 20 8% 40%;
-    --accent: 24 70% 55%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 72% 51%;
+    --accent: 40 74% 58%;           /* Amber */
+    --accent-foreground: 200 44% 10%;
+
+    --secondary: 150 10% 88%;
+    --secondary-foreground: 200 44% 10%;
+    --muted: 150 10% 88%;
+    --muted-foreground: 170 8% 38%; /* Slate */
+
+    --destructive: 4 62% 51%;       /* Alert */
     --destructive-foreground: 0 0% 100%;
-    --border: 20 10% 88%;
-    --input: 20 10% 88%;
-    --ring: 165 65% 28%;
-    --radius: 0.5rem;
+
+    --border: 150 10% 82%;
+    --input: 150 10% 82%;
+    --ring: 160 66% 36%;
+    --radius: 0.625rem;
+
+    /* Chrome-specific (sidebar / nav), independent of light/dark canvas */
+    --ink: 200 44% 10%;
+    --ink-foreground: 150 15% 92%;
+    --ink-muted: 190 20% 65%;
+    --ink-border: 200 30% 20%;
   }
 
   .dark {
-    --background: 20 14% 8%;
-    --foreground: 40 20% 95%;
-    --card: 20 14% 11%;
-    --card-foreground: 40 20% 95%;
-    --primary: 165 55% 45%;
-    --primary-foreground: 20 14% 8%;
-    --secondary: 20 10% 16%;
-    --secondary-foreground: 40 20% 95%;
-    --muted: 20 10% 16%;
-    --muted-foreground: 20 8% 65%;
-    --accent: 24 70% 55%;
-    --accent-foreground: 20 14% 8%;
-    --destructive: 0 62% 45%;
+    --background: 200 40% 8%;
+    --foreground: 150 15% 92%;
+    --card: 200 36% 11%;
+    --card-foreground: 150 15% 92%;
+
+    --primary: 160 55% 45%;
+    --primary-foreground: 200 44% 8%;
+    --accent: 40 70% 55%;
+    --accent-foreground: 200 44% 8%;
+
+    --secondary: 200 20% 16%;
+    --secondary-foreground: 150 15% 92%;
+    --muted: 200 20% 16%;
+    --muted-foreground: 170 10% 65%;
+
+    --destructive: 4 55% 48%;
     --destructive-foreground: 0 0% 100%;
-    --border: 20 10% 20%;
-    --input: 20 10% 20%;
-    --ring: 165 55% 45%;
+
+    --border: 200 20% 20%;
+    --input: 200 20% 20%;
+    --ring: 160 55% 45%;
+
+    --ink: 200 44% 6%;
+    --ink-foreground: 150 15% 92%;
+    --ink-muted: 190 15% 55%;
+    --ink-border: 200 25% 16%;
   }
 
   * {
@@ -49,5 +70,33 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
   }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display), Georgia, serif;
+  }
+  .font-mono-data {
+    font-family: var(--font-mono-data), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes ledger-scroll {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+.animate-ledger-scroll {
+  animation: ledger-scroll 22s linear infinite;
 }

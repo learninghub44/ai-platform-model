@@ -1,10 +1,11 @@
 import { AIProvider, AIGenerateParams, AIGenerateResult, AIProviderError } from "../types";
+import { hasEnv } from "../env";
 
 const MODEL = "gemini-1.5-flash";
 
 export const geminiProvider: AIProvider = {
   name: "gemini",
-  isConfigured: () => !!process.env.GOOGLE_GEMINI_API_KEY,
+  isConfigured: () => hasEnv("GOOGLE_GEMINI_API_KEY"),
   async generate({ messages, maxTokens = 1000, temperature = 0.7 }: AIGenerateParams): Promise<AIGenerateResult> {
     const systemMsg = messages.find((m) => m.role === "system");
     const contents = messages

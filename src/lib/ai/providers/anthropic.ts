@@ -1,10 +1,11 @@
 import { AIProvider, AIGenerateParams, AIGenerateResult, AIProviderError } from "../types";
+import { hasEnv } from "../env";
 
 const MODEL = "claude-sonnet-4-6";
 
 export const anthropicProvider: AIProvider = {
   name: "anthropic",
-  isConfigured: () => !!process.env.ANTHROPIC_API_KEY,
+  isConfigured: () => hasEnv("ANTHROPIC_API_KEY"),
   async generate({ messages, maxTokens = 1000, temperature = 0.7 }: AIGenerateParams): Promise<AIGenerateResult> {
     const systemMsg = messages.find((m) => m.role === "system");
     const rest = messages.filter((m) => m.role !== "system");

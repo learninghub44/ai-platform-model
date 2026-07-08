@@ -1,10 +1,11 @@
 import { AIProvider, AIGenerateParams, AIGenerateResult, AIProviderError } from "../types";
+import { hasEnv } from "../env";
 
 const MODEL = "gpt-4o-mini";
 
 export const openaiProvider: AIProvider = {
   name: "openai",
-  isConfigured: () => !!process.env.OPENAI_API_KEY,
+  isConfigured: () => hasEnv("OPENAI_API_KEY"),
   async generate({ messages, maxTokens = 1000, temperature = 0.7 }: AIGenerateParams): Promise<AIGenerateResult> {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",

@@ -42,6 +42,17 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    fetch(request).catch(() => caches.match(request))
+    fetch(request).catch(
+      () =>
+        caches.match(request).then(
+          (cached) =>
+            cached ||
+            new Response("Network error and no cached copy available.", {
+              status: 503,
+              statusText: "Service Unavailable",
+              headers: { "Content-Type": "text/plain" },
+            })
+        )
+    )
   );
 });

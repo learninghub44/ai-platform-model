@@ -1,10 +1,11 @@
 import { AIProvider, AIGenerateParams, AIGenerateResult, AIProviderError } from "../types";
+import { hasEnv } from "../env";
 
 const MODEL = "meta-llama/Llama-3.3-70B-Instruct-Turbo";
 
 export const togetherProvider: AIProvider = {
   name: "together",
-  isConfigured: () => !!process.env.TOGETHER_API_KEY,
+  isConfigured: () => hasEnv("TOGETHER_API_KEY"),
   async generate({ messages, maxTokens = 1000, temperature = 0.7 }: AIGenerateParams): Promise<AIGenerateResult> {
     const res = await fetch("https://api.together.xyz/v1/chat/completions", {
       method: "POST",

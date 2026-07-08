@@ -1,10 +1,11 @@
 import { AIProvider, AIGenerateParams, AIGenerateResult, AIProviderError } from "../types";
+import { hasEnv } from "../env";
 
 const MODEL = "command-r-plus";
 
 export const cohereProvider: AIProvider = {
   name: "cohere",
-  isConfigured: () => !!process.env.COHERE_API_KEY,
+  isConfigured: () => hasEnv("COHERE_API_KEY"),
   async generate({ messages, maxTokens = 1000, temperature = 0.7 }: AIGenerateParams): Promise<AIGenerateResult> {
     const systemMsg = messages.find((m) => m.role === "system");
     const last = messages[messages.length - 1];

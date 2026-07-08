@@ -36,12 +36,18 @@ export default function AiPlaygroundPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (window.matchMedia("(min-width: 768px)").matches) {
+      setSidebarOpen(true);
+    }
+  }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -132,6 +138,9 @@ export default function AiPlaygroundPage() {
       setInput(template.userPromptTemplate);
       textareaRef.current?.focus();
     }
+    if (!window.matchMedia("(min-width: 768px)").matches) {
+      setSidebarOpen(false);
+    }
   }
 
   function autoResizeTextarea() {
@@ -149,9 +158,21 @@ export default function AiPlaygroundPage() {
 
   return (
     <div className="flex h-screen bg-background">
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside 
-        className={`${sidebarOpen ? 'w-72' : 'w-0'} border-r border-border/50 bg-background/95 backdrop-blur-xl transition-all duration-300 ease-out overflow-hidden flex flex-col`}
+        className={cn(
+          "border-r border-border/50 bg-background/95 backdrop-blur-xl transition-all duration-300 ease-out overflow-hidden flex flex-col",
+          "fixed inset-y-0 left-0 z-50 md:static md:z-auto",
+          sidebarOpen ? "w-72" : "w-0 border-r-0 md:w-0"
+        )}
       >
         <div className="p-4">
           <Button 

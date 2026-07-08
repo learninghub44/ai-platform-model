@@ -66,7 +66,7 @@ export function PaymentHistoryTable({ payments }: { payments: Payment[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">
           {filtered.length} {filtered.length === 1 ? "payment" : "payments"}
         </p>
@@ -122,7 +122,7 @@ export function PaymentHistoryTable({ payments }: { payments: Payment[] }) {
       )}
 
       {pageCount > 1 && (
-        <div className="flex items-center justify-between border-t pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
           <p className="text-xs text-muted-foreground">
             Page {currentPage + 1} of {pageCount}
           </p>

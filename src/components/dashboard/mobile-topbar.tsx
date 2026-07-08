@@ -19,7 +19,7 @@ export function MobileTopbar({ isAdmin }: { isAdmin: boolean }) {
   return (
     <>
       {/* Sticky Header */}
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80 md:hidden">
         <div className="flex h-16 items-center justify-between px-4">
           <Link href="/dashboard">
             <Logo />

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles, Loader2, Plus, MessageSquare, X, FileText, Pen, Calendar, Book, Palette, Code, Shapes, Chart, Mail, Share, Search, Paperclip, Mic, Copy, RefreshCw, MoreHorizontal } from "lucide-react";
+import { Send, Sparkles, Loader2, Plus, MessageSquare, X, FileText, Pen, Calendar, Book, Palette, Code, Shapes, BarChart3, Mail, Share, Search, Paperclip, Mic, Copy, RefreshCw, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -18,7 +18,7 @@ const ICON_MAP: Record<string, any> = {
   Code,
   Shapes,
   FileText,
-  Chart,
+  Chart: BarChart3,
   Mail,
   Share,
   Search,
@@ -28,6 +28,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   error?: boolean;
+  templateId?: string;
 }
 
 export default function AiPlaygroundPage() {
@@ -69,7 +70,6 @@ export default function AiPlaygroundPage() {
     setMessages(nextMessages);
     setInput("");
     setSelectedTemplate(null);
-    setShowTemplates(false);
     setLoading(true);
 
     try {

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { MarketingNav } from "@/components/marketing/nav";
 import { MarketingFooter } from "@/components/marketing/footer";
+import { cn } from "@/lib/utils";
 
 const TEMPLATE_CARDS = [
   { icon: FileText, title: "CV Writing", description: "Create professional resumes" },

@@ -48,13 +48,15 @@ export async function generateWithFailover(options: AIGenerateOptions): Promise<
   const { preferredProvider, onAttempt, ...params } = options;
 
   const order = preferredProvider ? [preferredProvider] : getPriorityOrder();
-  const attemptedErrors: string[] = [];
+  const skipped: string[] = [];
+  const failed: string[] = [];
 
   for (const key of order) {
     const provider = REGISTRY[key];
     if (!provider) continue;
 
     if (!provider.isConfigured()) {
+      skipped.push(key);
       onAttempt?.({ provider: key, ok: false, error: "not configured" });
       continue;
     }
@@ -65,7 +67,7 @@ export async function generateWithFailover(options: AIGenerateOptions): Promise<
       return result;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      attemptedErrors.push(`${key}: ${message}`);
+      failed.push(`${key}: ${message}`);
       onAttempt?.({ provider: key, ok: false, error: message });
       // swallow and continue to next provider — this is the core
       // "one provider failing never breaks the platform" guarantee
@@ -73,9 +75,22 @@ export async function generateWithFailover(options: AIGenerateOptions): Promise<
     }
   }
 
-  throw new Error(
-    `All AI providers failed or unconfigured. Attempts: ${attemptedErrors.join(" | ") || "none configured"}`
-  );
+  // Distinguish "nothing was even configured" (a setup/env problem) from
+  // "configured providers were tried and actually failed" (an upstream/API
+  // problem) — collapsing these into one vague message is what made the
+  // last round of debugging slow.
+  if (failed.length === 0 && skipped.length === order.length) {
+    throw new Error(
+      `No AI provider is configured. Missing env vars for: ${skipped.join(", ")}. ` +
+        `Check that the relevant API key is set in the environment this process actually reads ` +
+        `(.env.local for next dev, .dev.vars for local wrangler, or wrangler secret put for the deployed Worker).`
+    );
+  }
+
+  const parts: string[] = [];
+  if (failed.length) parts.push(`failed: ${failed.join(" | ")}`);
+  if (skipped.length) parts.push(`not configured: ${skipped.join(", ")}`);
+  throw new Error(`All AI providers failed. ${parts.join(" | ")}`);
 }
 
 export function listConfiguredProviders(): string[] {

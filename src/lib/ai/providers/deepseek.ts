@@ -1,10 +1,11 @@
 import { AIProvider, AIGenerateParams, AIGenerateResult, AIProviderError } from "../types";
+import { hasEnv } from "../env";
 
 const MODEL = "deepseek-chat";
 
 export const deepseekProvider: AIProvider = {
   name: "deepseek",
-  isConfigured: () => !!process.env.DEEPSEEK_API_KEY,
+  isConfigured: () => hasEnv("DEEPSEEK_API_KEY"),
   async generate({ messages, maxTokens = 1000, temperature = 0.7 }: AIGenerateParams): Promise<AIGenerateResult> {
     const res = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",

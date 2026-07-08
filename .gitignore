@@ -5,6 +5,7 @@ node_modules
 out
 .env
 .env.local
+.dev.vars
 .vercel
 *.log
 tsconfig.tsbuildinfo

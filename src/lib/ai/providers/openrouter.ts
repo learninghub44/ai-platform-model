@@ -1,10 +1,11 @@
 import { AIProvider, AIGenerateParams, AIGenerateResult, AIProviderError } from "../types";
+import { hasEnv } from "../env";
 
 const MODEL = "openai/gpt-4o-mini";
 
 export const openrouterProvider: AIProvider = {
   name: "openrouter",
-  isConfigured: () => !!process.env.OPENROUTER_API_KEY,
+  isConfigured: () => hasEnv("OPENROUTER_API_KEY"),
   async generate({ messages, maxTokens = 1000, temperature = 0.7 }: AIGenerateParams): Promise<AIGenerateResult> {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",

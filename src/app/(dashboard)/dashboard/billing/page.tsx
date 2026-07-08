@@ -1,20 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { TopUpDialog } from "@/components/dashboard/top-up-dialog";
 import { SubscribeButton } from "@/components/dashboard/subscribe-button";
+import { PaymentHistoryTable } from "@/components/dashboard/payment-history-table";
 
 function formatMoney(kobo: number, currency = "KES") {
   return (kobo / 100).toLocaleString(undefined, { style: "currency", currency });
 }
-
-const STATUS_VARIANT: Record<string, "default" | "amber" | "destructive" | "outline"> = {
-  success: "default",
-  pending: "amber",
-  failed: "destructive",
-  refunded: "outline",
-};
 
 export default async function BillingPage() {
   const supabase = await createClient();
@@ -37,7 +30,7 @@ export default async function BillingPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-6 py-10">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="animate-fade-in flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-medium">Billing</h1>
           <p className="mt-1 text-sm text-muted-foreground">Wallet, plan, and payment history.</p>
@@ -45,7 +38,10 @@ export default async function BillingPage() {
         <TopUpDialog currency={currency} />
       </div>
 
-      <Card>
+      <Card
+        className="animate-slide-up opacity-0 [animation-fill-mode:forwards]"
+        style={{ animationDelay: "0ms" }}
+      >
         <CardHeader>
           <CardDescription>Wallet balance</CardDescription>
           <p className="font-mono-data text-3xl font-medium">
@@ -57,10 +53,16 @@ export default async function BillingPage() {
       <div>
         <h2 className="font-display text-lg font-medium">Plans</h2>
         <div className="mt-4 grid gap-5 sm:grid-cols-2">
-          {plans?.map((plan) => {
+          {plans?.map((plan, i) => {
             const isCurrent = entitlements?.plan_code === plan.code;
             return (
-              <Card key={plan.id} className={isCurrent ? "border-primary" : undefined}>
+              <Card
+                key={plan.id}
+                className={`animate-slide-up opacity-0 [animation-fill-mode:forwards] transition-shadow hover:shadow-md ${
+                  isCurrent ? "border-primary" : ""
+                }`}
+                style={{ animationDelay: `${75 + i * 75}ms` }}
+              >
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{plan.name}</CardTitle>
@@ -97,45 +99,12 @@ export default async function BillingPage() {
 
       <div>
         <h2 className="font-display text-lg font-medium">Payment history</h2>
-        <Card className="mt-4">
+        <Card
+          className="animate-slide-up mt-4 opacity-0 [animation-fill-mode:forwards]"
+          style={{ animationDelay: `${75 + (plans?.length ?? 0) * 75}ms` }}
+        >
           <CardContent className="pt-6">
-            {payments && payments.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Reference</TableHead>
-                    <TableHead>Kind</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {payments.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-mono-data text-xs">{p.reference}</TableCell>
-                      <TableCell className="capitalize">{p.kind.replace("_", " ")}</TableCell>
-                      <TableCell className="font-mono-data">{formatMoney(p.amount_kobo, p.currency)}</TableCell>
-                      <TableCell>
-                        <Badge variant={STATUS_VARIANT[p.status] ?? "outline"} className="capitalize">
-                          {p.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {new Date(p.created_at).toLocaleDateString()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="rounded-md border border-dashed py-8 text-center">
-                <p className="text-sm font-medium">No payments yet</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Top up your wallet or subscribe to a plan to see it here.
-                </p>
-              </div>
-            )}
+            <PaymentHistoryTable payments={payments ?? []} />
           </CardContent>
         </Card>
       </div>

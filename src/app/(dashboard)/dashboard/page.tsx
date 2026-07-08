@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { Wallet, CreditCard, Sparkles, ArrowUpRight } from "lucide-react";
+import { Wallet, CreditCard, Sparkles, ArrowUpRight, Activity } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
+import { UsageChart } from "@/components/dashboard/usage-chart";
 
 function formatMoney(kobo: number, currency = "KES") {
   return (kobo / 100).toLocaleString(undefined, { style: "currency", currency });
@@ -23,27 +25,50 @@ export default async function DashboardOverviewPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: entitlements }, { data: recentPayments }, { data: recentAiCalls }] = await Promise.all([
-    supabase.from("user_entitlements").select("*").eq("user_id", user!.id).single(),
-    supabase
-      .from("payments")
-      .select("id, kind, status, amount_kobo, currency, created_at")
-      .eq("user_id", user!.id)
-      .order("created_at", { ascending: false })
-      .limit(5),
-    supabase
-      .from("ai_usage_logs")
-      .select("id, provider, model, succeeded, created_at")
-      .eq("user_id", user!.id)
-      .order("created_at", { ascending: false })
-      .limit(5),
-  ]);
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+
+  const [{ data: entitlements }, { data: recentPayments }, { data: recentAiCalls }, { data: usageWindow }] =
+    await Promise.all([
+      supabase.from("user_entitlements").select("*").eq("user_id", user!.id).single(),
+      supabase
+        .from("payments")
+        .select("id, kind, status, amount_kobo, currency, created_at")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(5),
+      supabase
+        .from("ai_usage_logs")
+        .select("id, provider, model, succeeded, created_at")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(5),
+      supabase
+        .from("ai_usage_logs")
+        .select("created_at")
+        .eq("user_id", user!.id)
+        .gte("created_at", sevenDaysAgo.toISOString()),
+    ]);
 
   const currency = entitlements?.currency ?? "KES";
 
+  const usageByDay = new Map<string, number>();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(sevenDaysAgo);
+    d.setDate(d.getDate() + i);
+    usageByDay.set(d.toISOString().slice(0, 10), 0);
+  }
+  for (const row of usageWindow ?? []) {
+    const key = row.created_at.slice(0, 10);
+    if (usageByDay.has(key)) usageByDay.set(key, (usageByDay.get(key) ?? 0) + 1);
+  }
+  const usageChartData = Array.from(usageByDay.entries()).map(([day, calls]) => ({ day, calls }));
+  const totalCallsThisWeek = usageChartData.reduce((sum, d) => sum + d.calls, 0);
+
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-6 py-10">
-      <div>
+      <div className="animate-fade-in">
         <h1 className="font-display text-2xl font-medium">Overview</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Everything moving through your account, in one place.
@@ -51,7 +76,10 @@ export default async function DashboardOverviewPage() {
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Card>
+        <Card
+          className="animate-slide-up opacity-0 [animation-fill-mode:forwards] transition-shadow hover:shadow-md"
+          style={{ animationDelay: "0ms" }}
+        >
           <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
             <CardDescription className="flex items-center gap-2">
               <Wallet className="h-4 w-4" /> Wallet balance
@@ -69,7 +97,10 @@ export default async function DashboardOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="animate-slide-up opacity-0 [animation-fill-mode:forwards] transition-shadow hover:shadow-md"
+          style={{ animationDelay: "75ms" }}
+        >
           <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
             <CardDescription className="flex items-center gap-2">
               <CreditCard className="h-4 w-4" /> Current plan
@@ -89,8 +120,36 @@ export default async function DashboardOverviewPage() {
         </Card>
       </div>
 
+      <Card
+        className="animate-slide-up opacity-0 [animation-fill-mode:forwards]"
+        style={{ animationDelay: "150ms" }}
+      >
+        <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Activity className="h-4 w-4" /> AI usage, last 7 days
+          </CardTitle>
+          <Badge variant="outline" className="font-mono-data">
+            {totalCallsThisWeek} calls
+          </Badge>
+        </CardHeader>
+        <CardContent>
+          {totalCallsThisWeek > 0 ? (
+            <UsageChart data={usageChartData} />
+          ) : (
+            <EmptyState
+              icon={Activity}
+              label="No AI usage yet this week"
+              hint="Calls you make from the AI Playground will show up here."
+            />
+          )}
+        </CardContent>
+      </Card>
+
       <div className="grid gap-5 lg:grid-cols-2">
-        <Card>
+        <Card
+          className="animate-slide-up opacity-0 [animation-fill-mode:forwards]"
+          style={{ animationDelay: "225ms" }}
+        >
           <CardHeader>
             <CardTitle className="text-base">Recent payments</CardTitle>
           </CardHeader>
@@ -119,12 +178,26 @@ export default async function DashboardOverviewPage() {
                 </TableBody>
               </Table>
             ) : (
-              <EmptyState label="No payments yet" hint="Top up your wallet or subscribe to see activity here." />
+              <EmptyState
+                icon={Wallet}
+                label="No payments yet"
+                hint="Top up your wallet or subscribe to see activity here."
+                action={
+                  <Link href="/dashboard/billing">
+                    <Button size="sm" variant="outline">
+                      Top up wallet
+                    </Button>
+                  </Link>
+                }
+              />
             )}
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="animate-slide-up opacity-0 [animation-fill-mode:forwards]"
+          style={{ animationDelay: "300ms" }}
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Sparkles className="h-4 w-4" /> Recent AI calls
@@ -155,20 +228,22 @@ export default async function DashboardOverviewPage() {
                 </TableBody>
               </Table>
             ) : (
-              <EmptyState label="No AI calls yet" hint="Try the AI Playground to see the failover chain in action." />
+              <EmptyState
+                icon={Sparkles}
+                label="No AI calls yet"
+                hint="Try the AI Playground to see the failover chain in action."
+                action={
+                  <Link href="/dashboard/ai-playground">
+                    <Button size="sm" variant="outline">
+                      Open playground
+                    </Button>
+                  </Link>
+                }
+              />
             )}
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
-}
-
-function EmptyState({ label, hint }: { label: string; hint: string }) {
-  return (
-    <div className="rounded-md border border-dashed py-8 text-center">
-      <p className="text-sm font-medium">{label}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
     </div>
   );
 }

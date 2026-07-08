@@ -3,7 +3,7 @@ export function ThemeScript() {
     (function () {
       try {
         var stored = localStorage.getItem("theme");
-        var theme = stored || "light";
+        var theme = stored || "dark";
         if (theme === "dark") document.documentElement.classList.add("dark");
       } catch (e) {}
     })();

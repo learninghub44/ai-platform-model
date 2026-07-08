@@ -24,22 +24,30 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Platform Model — Operations console",
+  title: "XETU AI — Think. Create. Build.",
   description:
-    "A wallet, subscription, and AI-usage operations console for founders running multiple products at once.",
+    "XETU AI is your AI assistant for professional work and creative projects — write CVs, generate content, plan strategies, write code, and design ideas, all in one place.",
   manifest: "/manifest.json",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "Platform" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "XETU AI" },
+  icons: {
+    icon: "/brand/logo-icon.png",
+    apple: "/brand/logo-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0B1F2A",
+  themeColor: "#050810",
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`dark ${display.variable} ${body.variable} ${mono.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <ThemeScript />
       </head>

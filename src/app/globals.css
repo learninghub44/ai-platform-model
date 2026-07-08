@@ -4,20 +4,25 @@
 
 @layer base {
   :root {
-    /* Premium Blue/Black Theme - Light Mode */
+    /* XETU AI Brand Theme - Light Mode */
     --background: 220 20% 98%;
-    --foreground: 220 20% 10%;
+    --foreground: 222 25% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
+    --card-foreground: 222 25% 9%;
 
-    /* Brand - Blue */
-    --primary: 221 83% 53%;
+    /* Brand - logo blue */
+    --primary: 221 90% 52%;
     --primary-foreground: 0 0% 100%;
     --accent: 220 20% 90%;
-    --accent-foreground: 220 20% 10%;
+    --accent-foreground: 222 25% 9%;
+
+    /* Logo cyan highlight, used for gradients/glows */
+    --brand-cyan: 195 95% 50%;
+    --brand-blue: 221 90% 52%;
+    --brand-violet: 262 75% 58%;
 
     --secondary: 220 20% 96%;
-    --secondary-foreground: 220 20% 10%;
+    --secondary-foreground: 222 25% 9%;
     --muted: 220 20% 96%;
     --muted-foreground: 220 10% 45%;
 
@@ -26,44 +31,48 @@
 
     --border: 220 20% 90%;
     --input: 220 20% 90%;
-    --ring: 221 83% 53%;
+    --ring: 221 90% 52%;
     --radius: 1rem;
 
     /* Chrome-specific */
-    --ink: 220 20% 10%;
+    --ink: 222 30% 8%;
     --ink-foreground: 220 20% 98%;
     --ink-muted: 220 10% 55%;
     --ink-border: 220 20% 85%;
   }
 
   .dark {
-    /* Premium Blue/Black Theme - Dark Mode */
-    --background: 220 20% 5%;
-    --foreground: 220 20% 95%;
-    --card: 220 20% 8%;
-    --card-foreground: 220 20% 95%;
+    /* XETU AI Brand Theme - Dark Mode (matches logo: black bg, blue/cyan mark) */
+    --background: 222 30% 4%;
+    --foreground: 220 20% 96%;
+    --card: 222 28% 7%;
+    --card-foreground: 220 20% 96%;
 
-    --primary: 221 83% 60%;
-    --primary-foreground: 220 20% 5%;
-    --accent: 220 20% 15%;
-    --accent-foreground: 220 20% 95%;
+    --primary: 210 95% 58%;
+    --primary-foreground: 222 30% 4%;
+    --accent: 222 25% 14%;
+    --accent-foreground: 220 20% 96%;
 
-    --secondary: 220 20% 12%;
-    --secondary-foreground: 220 20% 95%;
-    --muted: 220 20% 12%;
+    --brand-cyan: 195 95% 55%;
+    --brand-blue: 221 90% 58%;
+    --brand-violet: 262 80% 65%;
+
+    --secondary: 222 25% 11%;
+    --secondary-foreground: 220 20% 96%;
+    --muted: 222 25% 11%;
     --muted-foreground: 220 10% 65%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 20% 15%;
-    --input: 220 20% 15%;
-    --ring: 221 83% 60%;
+    --border: 222 25% 15%;
+    --input: 222 25% 15%;
+    --ring: 210 95% 58%;
 
-    --ink: 220 20% 3%;
-    --ink-foreground: 220 20% 95%;
-    --ink-muted: 220 10% 50%;
-    --ink-border: 220 20% 12%;
+    --ink: 222 30% 3%;
+    --ink-foreground: 220 20% 96%;
+    --ink-muted: 220 10% 55%;
+    --ink-border: 222 25% 13%;
   }
 
   * {

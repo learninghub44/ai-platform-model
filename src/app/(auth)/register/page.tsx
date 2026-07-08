@@ -52,6 +52,12 @@ export default function RegisterPage() {
             We sent a verification link to <span className="font-medium text-foreground">{email}</span>. Confirm
             your address to activate your account.
           </p>
+          <p className="mt-6 text-xs text-muted-foreground">
+            Didn&apos;t get the email?{" "}
+            <a href="mailto:support@xetuai.com" className="text-foreground hover:underline">
+              Contact support
+            </a>
+          </p>
         </div>
       ) : (
         <>
@@ -103,6 +109,13 @@ export default function RegisterPage() {
             <Link href="/login" className="text-foreground hover:underline">
               Sign in
             </Link>
+          </p>
+
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            Need help?{" "}
+            <a href="mailto:support@xetuai.com" className="text-foreground hover:underline">
+              Contact support
+            </a>
           </p>
         </>
       )}

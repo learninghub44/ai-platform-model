@@ -102,6 +102,13 @@ function LoginForm() {
           Create account
         </Link>
       </div>
+
+      <p className="mt-8 text-center text-xs text-muted-foreground">
+        Having trouble signing in?{" "}
+        <a href="mailto:support@xetuai.com" className="text-foreground hover:underline">
+          Contact support
+        </a>
+      </p>
     </AuthShell>
   );
 }

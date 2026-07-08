@@ -1,33 +1,40 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
+/**
+ * Compact icon-only mark. Use in tight spaces (mobile nav collapsed state,
+ * favicons, loading states) where the full wordmark won't fit.
+ */
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" className={cn("h-6 w-6", className)} aria-hidden="true">
-      <rect width="32" height="32" rx="7" fill="currentColor" className="text-primary" />
-      <path
-        d="M9 17.5L14 22L23 10"
-        stroke="white"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
+    <span className={cn("relative inline-block h-8 w-8", className)}>
+      <Image
+        src="/brand/logo-icon.png"
+        alt="XETU AI"
+        fill
+        sizes="32px"
+        className="object-contain"
+        priority
       />
-    </svg>
+    </span>
   );
 }
 
-export function Logo({ className, dark = true }: { className?: string; dark?: boolean }) {
+/**
+ * Full lockup — icon + "XETU AI" wordmark. This is the default logo used
+ * across the marketing site, auth screens, and dashboard chrome.
+ */
+export function Logo({ className }: { className?: string; dark?: boolean }) {
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <LogoMark />
-      <span
-        className={cn(
-          "font-display text-[15px] font-semibold tracking-tight",
-          dark ? "text-ink-foreground" : "text-foreground"
-        )}
-      >
-        Platform<span className="text-primary">.</span>
-      </span>
-    </div>
+    <span className={cn("relative inline-block h-8 w-[150px] shrink-0", className)}>
+      <Image
+        src="/brand/logo-mark-word.png"
+        alt="XETU AI — Think. Create. Build."
+        fill
+        sizes="150px"
+        className="object-contain object-left"
+        priority
+      />
+    </span>
   );
 }

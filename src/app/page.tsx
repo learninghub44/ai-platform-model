@@ -50,7 +50,17 @@ export default async function HomePage() {
       <MarketingNav isLoggedIn={!!user} />
 
       {/* Hero - Premium Design */}
-      <section className="flex flex-1 flex-col items-center justify-center px-4 py-24 md:py-32">
+      <section className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-4 py-24 md:py-32">
+        {/* Brand glow, matching logo colours */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10"
+          style={{
+            background:
+              "radial-gradient(600px circle at 50% 0%, hsl(var(--brand-cyan) / 0.18), transparent 60%), radial-gradient(500px circle at 85% 20%, hsl(var(--brand-violet) / 0.12), transparent 60%)",
+          }}
+        />
+
         <div className="mx-auto max-w-4xl text-center">
           <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm text-primary">
             <Sparkles className="h-4 w-4" />
@@ -58,6 +68,16 @@ export default async function HomePage() {
           </div>
           
           <h1 className="font-display text-5xl font-semibold leading-tight sm:text-6xl md:text-7xl tracking-tight">
+            <span
+              className="bg-clip-text text-transparent"
+              style={{
+                backgroundImage:
+                  "linear-gradient(135deg, hsl(var(--brand-cyan)), hsl(var(--brand-blue)))",
+              }}
+            >
+              Think. Create. Build.
+            </span>
+            <br />
             Your AI assistant for work and creativity
           </h1>
           

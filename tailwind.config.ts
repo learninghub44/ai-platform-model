@@ -48,6 +48,11 @@ const config: Config = {
           limeDark: "#32CC0F",
           violetDark: "#7B2BD9",
         },
+        brand: {
+          cyan: "hsl(var(--brand-cyan))",
+          blue: "hsl(var(--brand-blue))",
+          violet: "hsl(var(--brand-violet))",
+        },
         ink: {
           DEFAULT: "hsl(var(--ink))",
           foreground: "hsl(var(--ink-foreground))",

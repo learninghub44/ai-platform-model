@@ -13,9 +13,11 @@ export default async function DashboardGroupLayout({ children }: { children: Rea
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, full_name, avatar_url")
+    .select("role, full_name, avatar_url, onboarding_completed_at")
     .eq("id", user.id)
     .single();
+
+  if (!profile?.onboarding_completed_at) redirect("/onboarding");
 
   const isAdmin = profile?.role === "admin";
 

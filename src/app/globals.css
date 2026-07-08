@@ -4,65 +4,66 @@
 
 @layer base {
   :root {
-    /* Canvas + chrome */
-    --background: 150 12% 93%;      /* Mist */
-    --foreground: 200 44% 10%;      /* Ink */
+    /* Premium Blue/Black Theme - Light Mode */
+    --background: 220 20% 98%;
+    --foreground: 220 20% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 200 44% 10%;
+    --card-foreground: 220 20% 10%;
 
-    /* Brand */
-    --primary: 160 66% 36%;         /* Signal green */
+    /* Brand - Blue */
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
-    --accent: 40 74% 58%;           /* Amber */
-    --accent-foreground: 200 44% 10%;
+    --accent: 220 20% 90%;
+    --accent-foreground: 220 20% 10%;
 
-    --secondary: 150 10% 88%;
-    --secondary-foreground: 200 44% 10%;
-    --muted: 150 10% 88%;
-    --muted-foreground: 170 8% 38%; /* Slate */
+    --secondary: 220 20% 96%;
+    --secondary-foreground: 220 20% 10%;
+    --muted: 220 20% 96%;
+    --muted-foreground: 220 10% 45%;
 
-    --destructive: 4 62% 51%;       /* Alert */
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 150 10% 82%;
-    --input: 150 10% 82%;
-    --ring: 160 66% 36%;
-    --radius: 0.625rem;
+    --border: 220 20% 90%;
+    --input: 220 20% 90%;
+    --ring: 221 83% 53%;
+    --radius: 1rem;
 
-    /* Chrome-specific (sidebar / nav), independent of light/dark canvas */
-    --ink: 200 44% 10%;
-    --ink-foreground: 150 15% 92%;
-    --ink-muted: 190 20% 65%;
-    --ink-border: 200 30% 20%;
+    /* Chrome-specific */
+    --ink: 220 20% 10%;
+    --ink-foreground: 220 20% 98%;
+    --ink-muted: 220 10% 55%;
+    --ink-border: 220 20% 85%;
   }
 
   .dark {
-    --background: 200 40% 8%;
-    --foreground: 150 15% 92%;
-    --card: 200 36% 11%;
-    --card-foreground: 150 15% 92%;
+    /* Premium Blue/Black Theme - Dark Mode */
+    --background: 220 20% 5%;
+    --foreground: 220 20% 95%;
+    --card: 220 20% 8%;
+    --card-foreground: 220 20% 95%;
 
-    --primary: 160 55% 45%;
-    --primary-foreground: 200 44% 8%;
-    --accent: 40 70% 55%;
-    --accent-foreground: 200 44% 8%;
+    --primary: 221 83% 60%;
+    --primary-foreground: 220 20% 5%;
+    --accent: 220 20% 15%;
+    --accent-foreground: 220 20% 95%;
 
-    --secondary: 200 20% 16%;
-    --secondary-foreground: 150 15% 92%;
-    --muted: 200 20% 16%;
-    --muted-foreground: 170 10% 65%;
+    --secondary: 220 20% 12%;
+    --secondary-foreground: 220 20% 95%;
+    --muted: 220 20% 12%;
+    --muted-foreground: 220 10% 65%;
 
-    --destructive: 4 55% 48%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 200 20% 20%;
-    --input: 200 20% 20%;
-    --ring: 160 55% 45%;
+    --border: 220 20% 15%;
+    --input: 220 20% 15%;
+    --ring: 221 83% 60%;
 
-    --ink: 200 44% 6%;
-    --ink-foreground: 150 15% 92%;
-    --ink-muted: 190 15% 55%;
-    --ink-border: 200 25% 16%;
+    --ink: 220 20% 3%;
+    --ink-foreground: 220 20% 95%;
+    --ink-muted: 220 10% 50%;
+    --ink-border: 220 20% 12%;
   }
 
   * {
@@ -71,16 +72,8 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "cv11", "ss01";
-  }
-}
-
-@layer utilities {
-  .font-display {
-    font-family: var(--font-display), Georgia, serif;
-  }
-  .font-mono-data {
-    font-family: var(--font-mono-data), ui-monospace, monospace;
-    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 

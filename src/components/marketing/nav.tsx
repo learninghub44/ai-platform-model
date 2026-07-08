@@ -4,30 +4,29 @@ import { Button } from "@/components/ui/button";
 
 export function MarketingNav() {
   return (
-    <header className="sticky top-0 z-40 border-b border-ink-border/60 bg-ink/95 backdrop-blur supports-[backdrop-filter]:bg-ink/80">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+    <header className="sticky top-0 z-40 border-b border-border/50 bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link href="/">
           <Logo />
         </Link>
-        <nav className="hidden items-center gap-8 text-sm text-ink-muted md:flex">
-          <a href="#features" className="transition-colors hover:text-ink-foreground">
+        <nav className="hidden items-center gap-8 text-sm font-medium text-muted-foreground md:flex">
+          <a href="#features" className="transition-colors hover:text-foreground hover-lift">
             Features
           </a>
-          <a href="#pricing" className="transition-colors hover:text-ink-foreground">
+          <a href="#pricing" className="transition-colors hover:text-foreground hover-lift">
             Pricing
           </a>
-          <a href="#architecture" className="transition-colors hover:text-ink-foreground">
-            How it works
-          </a>
         </nav>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Link href="/login">
-            <Button variant="ghost" className="text-ink-foreground hover:bg-white/10 hover:text-ink-foreground">
+            <Button variant="ghost" className="text-foreground hover:bg-accent rounded-xl">
               Sign in
             </Button>
           </Link>
           <Link href="/register">
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">Get started</Button>
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl shadow-sm">
+              Get started
+            </Button>
           </Link>
         </div>
       </div>

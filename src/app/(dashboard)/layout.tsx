@@ -28,7 +28,12 @@ export default async function DashboardGroupLayout({ children }: { children: Rea
         avatarUrl={profile?.avatar_url ?? null}
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <MobileTopbar isAdmin={isAdmin} />
+        <MobileTopbar
+          isAdmin={isAdmin}
+          email={user.email ?? ""}
+          fullName={profile?.full_name ?? null}
+          avatarUrl={profile?.avatar_url ?? null}
+        />
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>

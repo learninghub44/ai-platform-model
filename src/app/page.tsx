@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { MarketingNav } from "@/components/marketing/nav";
 import { MarketingFooter } from "@/components/marketing/footer";
+import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
 const TEMPLATE_CARDS = [
@@ -38,10 +39,15 @@ const PLANS = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <MarketingNav />
+      <MarketingNav isLoggedIn={!!user} />
 
       {/* Hero - Premium Design */}
       <section className="flex flex-1 flex-col items-center justify-center px-4 py-24 md:py-32">

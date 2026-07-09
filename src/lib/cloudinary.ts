@@ -15,6 +15,22 @@ export async function uploadImage(fileBase64OrUrl: string, folder = "uploads") {
   });
 }
 
+/**
+ * Uploads any file type (images, PDFs, docs, zips, ...) via Cloudinary's
+ * `resource_type: "auto"`, which is how non-image files land there without
+ * a separate Supabase Storage bucket. Images still get the auto quality /
+ * format transform; everything else is stored as-is.
+ */
+export async function uploadFile(fileBase64: string, folder = "uploads", filename?: string) {
+  return cloudinary.uploader.upload(fileBase64, {
+    folder,
+    resource_type: "auto",
+    use_filename: Boolean(filename),
+    unique_filename: true,
+    filename_override: filename,
+  });
+}
+
 export function getOptimizedUrl(publicId: string, opts: { width?: number; height?: number } = {}) {
   return cloudinary.url(publicId, {
     quality: "auto",

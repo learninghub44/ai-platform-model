@@ -45,6 +45,7 @@ import { ChatMessageBubble } from "@/components/chat/chat-message";
 import { ChatComposer } from "@/components/chat/chat-composer";
 import { ShareDialog } from "@/components/chat/share-dialog";
 import { exportConversationAsMarkdown, exportConversationAsPDF } from "@/lib/chat/export";
+import { uploadAttachment, makeAttachmentId, type PendingAttachment } from "@/lib/chat/attachments";
 import { Logo } from "@/components/logo";
 import type { Conversation, ChatMessage } from "@/lib/types/chat";
 
@@ -122,7 +123,7 @@ export function PlaygroundClient({
   const [model, setModel] = useState("anthropic");
   const [webSearch, setWebSearch] = useState(false);
   const [deepThink, setDeepThink] = useState(false);
-  const [attachments, setAttachments] = useState<File[]>([]);
+  const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -171,24 +172,58 @@ export function PlaygroundClient({
     setMessages([]);
     setSelectedTemplate(null);
     setInput("");
+    setAttachments([]);
     if (!window.matchMedia("(min-width: 768px)").matches) setSidebarOpen(false);
+  }
+
+  function addAttachmentFiles(files: File[]) {
+    const pending: PendingAttachment[] = files.map((file) => ({
+      id: makeAttachmentId(),
+      file,
+      previewUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
+      status: "uploading",
+      progress: 0,
+    }));
+    setAttachments((prev) => [...prev, ...pending]);
+
+    for (const att of pending) {
+      uploadAttachment(att.file, activeId, (pct) => {
+        setAttachments((prev) => prev.map((a) => (a.id === att.id ? { ...a, progress: pct } : a)));
+      })
+        .then((result) => {
+          setAttachments((prev) =>
+            prev.map((a) => (a.id === att.id ? { ...a, status: "done", progress: 100, result } : a))
+          );
+        })
+        .catch((err) => {
+          setAttachments((prev) =>
+            prev.map((a) =>
+              a.id === att.id ? { ...a, status: "error", error: err instanceof Error ? err.message : "Upload failed" } : a
+            )
+          );
+        });
+    }
+  }
+
+  function removeAttachment(id: string) {
+    setAttachments((prev) => {
+      const target = prev.find((a) => a.id === id);
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((a) => a.id !== id);
+    });
   }
 
   async function sendMessage(content: string, opts?: { systemPrompt?: string }) {
     if ((!content.trim() && attachments.length === 0) || loading || locked) return;
+    if (attachments.some((a) => a.status === "uploading")) return;
 
-    // Attachment upload/ingestion is wired in a later batch — for now we
-    // surface what was attached so nothing silently disappears.
-    const attachmentNote =
-      attachments.length > 0
-        ? `\n\n[Attached: ${attachments.map((f) => f.name).join(", ")}]`
-        : "";
-    const fullContent = `${content}${attachmentNote}`.trim();
+    const uploaded = attachments.filter((a) => a.status === "done" && a.result).map((a) => a.result!);
 
     const optimisticUser: ChatMessage = {
       id: `optimistic-${Date.now()}`,
       role: "user",
-      content: fullContent,
+      content,
+      attachments: uploaded,
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimisticUser]);
@@ -203,12 +238,10 @@ export function PlaygroundClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId: activeId,
-          content: fullContent,
-          systemPrompt:
-            opts?.systemPrompt ??
-            (webSearch
-              ? "The user has enabled web search intent — note in your answer if current information would materially change it, since live search isn't wired up yet."
-              : undefined),
+          content,
+          attachments: uploaded,
+          webSearch,
+          systemPrompt: opts?.systemPrompt,
           preferredProvider: model,
           temperature: deepThink ? 0.3 : undefined,
           maxTokens: deepThink ? 4096 : undefined,
@@ -261,6 +294,10 @@ export function PlaygroundClient({
         systemPrompt = template.systemPrompt;
         finalInput = template.userPromptTemplate.replace(/\{[^}]+\}/g, input);
       }
+    }
+
+    if (!finalInput.trim() && attachments.length > 0) {
+      finalInput = "Take a look at the attached file(s).";
     }
 
     await sendMessage(finalInput, { systemPrompt });
@@ -682,7 +719,8 @@ export function PlaygroundClient({
             onDeepThinkChange={setDeepThink}
             onSelectTemplate={selectTemplateFromLibrary}
             attachments={attachments}
-            onAttachmentsChange={setAttachments}
+            onAddFiles={addAttachmentFiles}
+            onRemoveAttachment={removeAttachment}
           />
         </div>
       </main>

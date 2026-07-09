@@ -16,6 +16,8 @@ import {
   ChevronDown,
   X,
   FileIcon,
+  UploadCloud,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +32,7 @@ import {
 import { cn } from "@/lib/utils";
 import { UsageLockOverlay } from "./usage-lock-overlay";
 import { PROMPT_TEMPLATES, type PromptTemplate } from "@/lib/ai/templates";
+import type { PendingAttachment } from "@/lib/chat/attachments";
 
 export interface ModelOption {
   id: string;
@@ -63,8 +66,58 @@ interface ChatComposerProps {
   deepThink: boolean;
   onDeepThinkChange: (v: boolean) => void;
   onSelectTemplate: (template: PromptTemplate) => void;
-  attachments: File[];
-  onAttachmentsChange: (files: File[]) => void;
+  attachments: PendingAttachment[];
+  onAddFiles: (files: File[]) => void;
+  onRemoveAttachment: (id: string) => void;
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+function AttachmentChip({ attachment, onRemove }: { attachment: PendingAttachment; onRemove: () => void }) {
+  const isImage = attachment.file.type.startsWith("image/");
+
+  return (
+    <div className="group relative flex items-center gap-2 overflow-hidden rounded-xl border border-border/50 bg-card pr-2 text-xs shadow-sm">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden bg-accent/40">
+        {isImage && attachment.previewUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={attachment.previewUrl} alt={attachment.file.name} className="h-full w-full object-cover" />
+        ) : attachment.status === "error" ? (
+          <AlertCircle className="h-4 w-4 text-destructive" />
+        ) : (
+          <FileIcon className="h-4 w-4 text-primary" />
+        )}
+      </div>
+
+      <div className="min-w-0 py-1.5">
+        <p className="max-w-[130px] truncate font-medium">{attachment.file.name}</p>
+        {attachment.status === "uploading" ? (
+          <div className="mt-1 h-1 w-24 overflow-hidden rounded-full bg-accent">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-150"
+              style={{ width: `${attachment.progress}%` }}
+            />
+          </div>
+        ) : attachment.status === "error" ? (
+          <p className="truncate text-[10px] text-destructive">{attachment.error ?? "Upload failed"}</p>
+        ) : (
+          <p className="text-[10px] text-muted-foreground">{formatBytes(attachment.file.size)}</p>
+        )}
+      </div>
+
+      <button
+        onClick={onRemove}
+        className="ml-1 shrink-0 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+        title="Remove attachment"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  );
 }
 
 export function ChatComposer({
@@ -84,22 +137,22 @@ export function ChatComposer({
   onDeepThinkChange,
   onSelectTemplate,
   attachments,
-  onAttachmentsChange,
+  onAddFiles,
+  onRemoveAttachment,
 }: ChatComposerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [recording, setRecording] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const dragCounter = useRef(0);
 
   const activeModel = MODEL_OPTIONS.find((m) => m.id === model) ?? MODEL_OPTIONS[0];
+  const anyUploading = attachments.some((a) => a.status === "uploading");
 
   function addFiles(fileList: FileList | null) {
-    if (!fileList) return;
-    onAttachmentsChange([...attachments, ...Array.from(fileList)]);
-  }
-
-  function removeAttachment(idx: number) {
-    onAttachmentsChange(attachments.filter((_, i) => i !== idx));
+    if (!fileList || fileList.length === 0) return;
+    onAddFiles(Array.from(fileList));
   }
 
   function toggleVoice() {
@@ -107,22 +160,60 @@ export function ChatComposer({
     setRecording((r) => !r);
   }
 
+  function handleDragEnter(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (locked) return;
+    if (e.dataTransfer.types.includes("Files")) {
+      dragCounter.current += 1;
+      setDragActive(true);
+    }
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current -= 1;
+    if (dragCounter.current <= 0) {
+      dragCounter.current = 0;
+      setDragActive(false);
+    }
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current = 0;
+    setDragActive(false);
+    if (locked) return;
+    addFiles(e.dataTransfer.files);
+  }
+
   return (
     <div className="border-t border-border/50 bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto max-w-[900px] px-4 py-4 sm:px-6">
+      <div
+        className="relative mx-auto max-w-[900px] px-4 py-4 sm:px-6"
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        {dragActive && (
+          <div className="pointer-events-none absolute inset-1 z-10 flex flex-col items-center justify-center gap-2 rounded-[20px] border-2 border-dashed border-primary bg-primary/10 backdrop-blur-sm">
+            <UploadCloud className="h-6 w-6 text-primary" />
+            <p className="text-sm font-medium text-primary">Drop files to attach</p>
+          </div>
+        )}
+
         {attachments.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">
-            {attachments.map((file, idx) => (
-              <div
-                key={`${file.name}-${idx}`}
-                className="flex items-center gap-2 rounded-xl border border-border/50 bg-card px-3 py-1.5 text-xs shadow-sm"
-              >
-                <FileIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
-                <span className="max-w-[140px] truncate">{file.name}</span>
-                <button onClick={() => removeAttachment(idx)} className="text-muted-foreground hover:text-foreground">
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
+            {attachments.map((att) => (
+              <AttachmentChip key={att.id} attachment={att} onRemove={() => onRemoveAttachment(att.id)} />
             ))}
           </div>
         )}
@@ -139,6 +230,10 @@ export function ChatComposer({
                 e.preventDefault();
                 onSend();
               }
+            }}
+            onPaste={(e) => {
+              const files = e.clipboardData.files;
+              if (files && files.length > 0) addFiles(files);
             }}
             placeholder={locked ? "You're out of credit — upgrade to keep chatting" : "Message the assistant..."}
             disabled={locked}
@@ -252,12 +347,12 @@ export function ChatComposer({
             ) : (
               <Button
                 onClick={onSend}
-                disabled={loading || locked || (!value.trim() && attachments.length === 0)}
+                disabled={loading || locked || anyUploading || (!value.trim() && attachments.length === 0)}
                 size="icon"
                 className="h-9 w-9 shrink-0 rounded-xl bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
-                title="Send"
+                title={anyUploading ? "Waiting for attachments to finish uploading" : "Send"}
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {loading || anyUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             )}
           </div>
@@ -273,7 +368,10 @@ export function ChatComposer({
           multiple
           className="hidden"
           accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.csv,.xls,.xlsx,.zip,image/*,audio/*,video/*"
-          onChange={(e) => addFiles(e.target.files)}
+          onChange={(e) => {
+            addFiles(e.target.files);
+            e.target.value = "";
+          }}
         />
         <input
           ref={cameraInputRef}
@@ -281,7 +379,10 @@ export function ChatComposer({
           accept="image/*"
           capture="environment"
           className="hidden"
-          onChange={(e) => addFiles(e.target.files)}
+          onChange={(e) => {
+            addFiles(e.target.files);
+            e.target.value = "";
+          }}
         />
         <input
           ref={galleryInputRef}
@@ -289,7 +390,10 @@ export function ChatComposer({
           multiple
           accept="image/*"
           className="hidden"
-          onChange={(e) => addFiles(e.target.files)}
+          onChange={(e) => {
+            addFiles(e.target.files);
+            e.target.value = "";
+          }}
         />
       </div>
     </div>

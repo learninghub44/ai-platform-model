@@ -28,7 +28,7 @@ async function getSharedConversation(shareId: string) {
 
   const { data: messages } = await supabase
     .from("messages")
-    .select("id, role, content, created_at")
+    .select("id, role, content, attachments, created_at")
     .eq("conversation_id", conversation.id)
     .neq("role", "system")
     .order("created_at", { ascending: true });

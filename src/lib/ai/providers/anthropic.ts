@@ -1,5 +1,6 @@
 import { AIProvider, AIGenerateParams, AIGenerateResult, AIProviderError } from "../types";
 import { hasEnv } from "../env";
+import { toAnthropicContent, toPlainText } from "../content";
 
 const MODEL = "claude-sonnet-4-6";
 
@@ -8,7 +9,9 @@ export const anthropicProvider: AIProvider = {
   isConfigured: () => hasEnv("ANTHROPIC_API_KEY"),
   async generate({ messages, maxTokens = 1000, temperature = 0.7 }: AIGenerateParams): Promise<AIGenerateResult> {
     const systemMsg = messages.find((m) => m.role === "system");
-    const rest = messages.filter((m) => m.role !== "system");
+    const rest = messages
+      .filter((m) => m.role !== "system")
+      .map((m) => ({ role: m.role, content: toAnthropicContent(m.content) }));
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -21,7 +24,7 @@ export const anthropicProvider: AIProvider = {
         model: MODEL,
         max_tokens: maxTokens,
         temperature,
-        system: systemMsg?.content,
+        system: systemMsg ? toPlainText(systemMsg.content) : undefined,
         messages: rest,
       }),
     });

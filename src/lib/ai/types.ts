@@ -1,6 +1,11 @@
+export type AIContentPart =
+  | { type: "text"; text: string }
+  | { type: "image"; url: string; mimeType?: string };
+
 export interface AIMessage {
   role: "system" | "user" | "assistant";
-  content: string;
+  /** A plain string for text-only turns, or parts for messages carrying image attachments. */
+  content: string | AIContentPart[];
 }
 
 export interface AIGenerateParams {

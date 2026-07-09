@@ -1,5 +1,6 @@
 import { AIProvider, AIGenerateParams, AIGenerateResult, AIProviderError } from "../types";
 import { hasEnv } from "../env";
+import { toPlainText } from "../content";
 
 const MODEL = "command-r-plus";
 
@@ -7,12 +8,13 @@ export const cohereProvider: AIProvider = {
   name: "cohere",
   isConfigured: () => hasEnv("COHERE_API_KEY"),
   async generate({ messages, maxTokens = 1000, temperature = 0.7 }: AIGenerateParams): Promise<AIGenerateResult> {
+    // Text-only model — image parts are collapsed to a text note.
     const systemMsg = messages.find((m) => m.role === "system");
     const last = messages[messages.length - 1];
     const history = messages
       .slice(0, -1)
       .filter((m) => m.role !== "system")
-      .map((m) => ({ role: m.role === "assistant" ? "CHATBOT" : "USER", message: m.content }));
+      .map((m) => ({ role: m.role === "assistant" ? "CHATBOT" : "USER", message: toPlainText(m.content) }));
 
     const res = await fetch("https://api.cohere.com/v1/chat", {
       method: "POST",
@@ -22,9 +24,9 @@ export const cohereProvider: AIProvider = {
       },
       body: JSON.stringify({
         model: MODEL,
-        message: last?.content ?? "",
+        message: last ? toPlainText(last.content) : "",
         chat_history: history,
-        preamble: systemMsg?.content,
+        preamble: systemMsg ? toPlainText(systemMsg.content) : undefined,
         max_tokens: maxTokens,
         temperature,
       }),

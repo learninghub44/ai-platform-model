@@ -9,6 +9,15 @@ export interface Conversation {
   created_at: string;
 }
 
+export interface ChatAttachment {
+  id: string;
+  name: string;
+  url: string;
+  mimeType: string;
+  sizeBytes: number;
+  kind: "image" | "file";
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
@@ -16,6 +25,7 @@ export interface ChatMessage {
   error?: boolean;
   edited_at?: string | null;
   created_at: string;
+  attachments?: ChatAttachment[];
   /** Client-only: set while a message is being edited inline */
   pending?: boolean;
   /** Client-only: has this message already finished its stream reveal? */

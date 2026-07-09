@@ -15,6 +15,7 @@ import {
   RotateCcw,
   ChevronsDown,
   User,
+  Paperclip,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -132,6 +133,29 @@ export function ChatMessageBubble({
 
           {isUser ? (
             <div className="rounded-2xl rounded-tr-md bg-primary px-5 py-3 text-primary-foreground shadow-sm">
+              {message.attachments && message.attachments.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {message.attachments.map((att) =>
+                    att.kind === "image" ? (
+                      <a key={att.id} href={att.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={att.url} alt={att.name} className="h-24 w-24 object-cover" />
+                      </a>
+                    ) : (
+                      <a
+                        key={att.id}
+                        href={att.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1.5 rounded-lg bg-primary-foreground/10 px-2.5 py-1.5 text-xs hover:bg-primary-foreground/20"
+                      >
+                        <Paperclip className="h-3 w-3 shrink-0" />
+                        <span className="max-w-[140px] truncate">{att.name}</span>
+                      </a>
+                    )
+                  )}
+                </div>
+              )}
               <p className="whitespace-pre-wrap text-[15px] leading-relaxed">{message.content}</p>
             </div>
           ) : (

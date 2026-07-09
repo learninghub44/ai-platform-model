@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateWithFailover } from "@/lib/ai";
-import type { AIMessage } from "@/lib/ai/types";
+import { webSearch, formatSearchContext } from "@/lib/ai/search";
+import type { AIMessage, AIContentPart } from "@/lib/ai/types";
+import type { ChatAttachment } from "@/lib/types/chat";
 
 function deriveTitle(content: string) {
   const clean = content.trim().replace(/\s+/g, " ");
@@ -26,6 +28,8 @@ export async function POST(req: NextRequest) {
     preferredProvider,
     maxTokens,
     temperature,
+    attachments,
+    webSearch: webSearchEnabled,
   }: {
     conversationId?: string;
     content?: string;
@@ -34,6 +38,8 @@ export async function POST(req: NextRequest) {
     preferredProvider?: string;
     maxTokens?: number;
     temperature?: number;
+    attachments?: ChatAttachment[];
+    webSearch?: boolean;
   } = await req.json();
 
   if (!regenerate && (!content || !content.trim())) {
@@ -107,13 +113,19 @@ export async function POST(req: NextRequest) {
     .eq("conversation_id", conversation.id)
     .order("created_at", { ascending: true });
 
-  let userMessage: { id: string; role: string; content: string; created_at: string } | null = null;
+  let userMessage: { id: string; role: string; content: string; created_at: string; attachments?: ChatAttachment[] } | null = null;
 
   if (!regenerate) {
     const { data, error: userMsgError } = await supabase
       .from("messages")
-      .insert({ conversation_id: conversation.id, user_id: user.id, role: "user", content: content! })
-      .select("id, role, content, created_at")
+      .insert({
+        conversation_id: conversation.id,
+        user_id: user.id,
+        role: "user",
+        content: content!,
+        attachments: attachments ?? [],
+      })
+      .select("id, role, content, created_at, attachments")
       .single();
 
     if (userMsgError || !data) {
@@ -122,12 +134,33 @@ export async function POST(req: NextRequest) {
     userMessage = data;
   }
 
+  // The current turn's image attachments ride along as vision content parts.
+  // Attachments on *prior* turns stay as plain text (the note already saved
+  // alongside them) to keep history payloads bounded.
+  const imageAttachments = (attachments ?? []).filter((a) => a.kind === "image");
+  const currentUserContent: string | AIContentPart[] =
+    imageAttachments.length > 0
+      ? [
+          { type: "text", text: content! },
+          ...imageAttachments.map((a) => ({ type: "image" as const, url: a.url, mimeType: a.mimeType })),
+        ]
+      : content!;
+
+  // Web search runs once, up front, against the user's latest message —
+  // never throws, degrades to "no results" on failure or missing key.
+  let searchContext = "";
+  if (!regenerate && webSearchEnabled && content) {
+    const results = await webSearch(content);
+    searchContext = formatSearchContext(results);
+  }
+
   const historyForModel: AIMessage[] = [
     ...(systemPrompt && (!priorMessages || priorMessages.length === 0)
       ? [{ role: "system" as const, content: systemPrompt }]
       : []),
     ...(priorMessages ?? []).map((m) => ({ role: m.role as AIMessage["role"], content: m.content })),
-    ...(regenerate ? [] : [{ role: "user" as const, content: content! }]),
+    ...(searchContext ? [{ role: "system" as const, content: searchContext }] : []),
+    ...(regenerate ? [] : [{ role: "user" as const, content: currentUserContent }]),
   ];
 
   if (historyForModel.length === 0 || historyForModel[historyForModel.length - 1].role !== "user") {

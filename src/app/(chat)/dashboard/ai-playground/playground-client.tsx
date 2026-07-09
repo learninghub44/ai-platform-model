@@ -782,22 +782,21 @@ export function PlaygroundClient({
                   <p className="mb-8 max-w-md text-base text-muted-foreground sm:text-lg">
                     How can I help you today? Choose a template below or just start typing.
                   </p>
-                  <div className="grid w-full max-w-2xl gap-3 sm:grid-cols-2 sm:gap-4">
+                  <div className="w-full max-w-md space-y-1">
                     {PROMPT_TEMPLATES.slice(0, 4).map((template) => {
                       const IconComponent = ICON_MAP[template.icon] || FileText;
                       return (
                         <button
                           key={template.id}
                           onClick={() => selectTemplate(template.id)}
-                          className="group rounded-2xl border border-border/50 bg-card p-4 text-left transition-all duration-200 hover:border-primary/50 hover:shadow-glass-md sm:p-5"
+                          className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-accent"
                         >
-                          <div className="mb-3 flex items-center gap-3">
-                            <div className="rounded-xl bg-primary/10 p-2">
-                              <IconComponent className="h-5 w-5 text-primary" />
-                            </div>
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/70">
+                            <IconComponent className="h-4.5 w-4.5 text-foreground/70" />
                           </div>
-                          <div className="text-sm font-medium">{template.name}</div>
-                          <div className="mt-1 text-xs text-muted-foreground">{template.description}</div>
+                          <span className="truncate text-[0.95rem] font-normal text-foreground/90">
+                            {template.name}
+                          </span>
                         </button>
                       );
                     })}

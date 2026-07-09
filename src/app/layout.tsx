@@ -49,6 +49,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${display.variable} ${body.variable} ${mono.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        {/* Workaround for a known next-themes bug: its injected inline
+            theme-init script calls esbuild's `__name(fn, "name")` helper
+            (from keepNames) without defining it, throwing
+            "ReferenceError: __name is not defined" and breaking theme
+            init on first paint. Define a harmless no-op before that
+            script runs. Safe to remove once upstream ships a fix:
+            https://github.com/pacocoursey/next-themes/issues/370 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "window.__name=window.__name||function(fn){return fn;};",
+          }}
+        />
+      </head>
       <body className="min-h-screen font-sans antialiased" style={{ fontFamily: "var(--font-body), Inter, sans-serif" }}>
         <ThemeProvider>
           {children}

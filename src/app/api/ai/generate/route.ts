@@ -11,6 +11,27 @@ function deriveTitle(content: string) {
 }
 
 export async function POST(req: NextRequest) {
+  try {
+    return await handlePost(req);
+  } catch (err) {
+    // Anything thrown above the inner try/catch (auth, profile lookup,
+    // conversation lookup/creation, saving the user message, etc.) used to
+    // propagate as an unhandled exception, which Next.js/Cloudflare Workers
+    // turns into a non-JSON error page. The frontend's res.json() call then
+    // throws too, and the user sees a generic "Network error" message that
+    // has nothing to do with their actual connection. Catching here
+    // guarantees a JSON body every time so the real error is visible in
+    // server logs (via console.error below) and the user gets a sane
+    // message instead of a misleading one.
+    console.error("[ai/generate] unhandled error before completion:", err instanceof Error ? err.message : err);
+    return NextResponse.json(
+      { error: "Something went wrong on our end. Please try again." },
+      { status: 500 }
+    );
+  }
+}
+
+async function handlePost(req: NextRequest) {
   const supabase = await createClient();
   const {
     data: { user },

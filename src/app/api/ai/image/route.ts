@@ -9,6 +9,22 @@ function deriveTitle(prompt: string) {
 }
 
 export async function POST(req: NextRequest) {
+  try {
+    return await handlePost(req);
+  } catch (err) {
+    // See generate/route.ts for why this outer catch exists — without it,
+    // an early failure (auth, conversation lookup/creation, profile fetch)
+    // returns a non-JSON error page and the frontend surfaces a misleading
+    // "Network error" message instead of the real cause.
+    console.error("[ai/image] unhandled error before completion:", err instanceof Error ? err.message : err);
+    return NextResponse.json(
+      { error: "Something went wrong on our end. Please try again." },
+      { status: 500 }
+    );
+  }
+}
+
+async function handlePost(req: NextRequest) {
   const supabase = await createClient();
   const {
     data: { user },

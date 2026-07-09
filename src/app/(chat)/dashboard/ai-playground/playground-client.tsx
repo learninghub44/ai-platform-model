@@ -324,10 +324,19 @@ export function PlaygroundClient({
         }
       }
       await loadConversations();
-    } catch {
+    } catch (err) {
+      // fetch() itself throws a TypeError when the network request never
+      // completes (offline, DNS failure, CORS block) — that's a real
+      // connectivity problem. Anything else here is res.json() failing
+      // because the server returned a non-JSON error page, which is a
+      // server-side bug, not the user's connection.
+      const message =
+        err instanceof TypeError
+          ? "Network error. Please check your connection."
+          : "Something went wrong. Please try again.";
       setMessages((prev) => [
         ...prev,
-        { id: `err-${Date.now()}`, role: "assistant", content: "Network error. Please check your connection.", error: true, created_at: new Date().toISOString() },
+        { id: `err-${Date.now()}`, role: "assistant", content: message, error: true, created_at: new Date().toISOString() },
       ]);
     } finally {
       setLoading(false);
@@ -377,10 +386,14 @@ export function PlaygroundClient({
         if (!activeId && data.conversation) setActiveId(data.conversation.id);
       }
       await loadConversations();
-    } catch {
+    } catch (err) {
+      const message =
+        err instanceof TypeError
+          ? "Network error. Please check your connection."
+          : "Something went wrong. Please try again.";
       setMessages((prev) => [
         ...prev,
-        { id: `err-${Date.now()}`, role: "assistant", content: "Network error. Please check your connection.", error: true, created_at: new Date().toISOString() },
+        { id: `err-${Date.now()}`, role: "assistant", content: message, error: true, created_at: new Date().toISOString() },
       ]);
     } finally {
       setLoading(false);

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Send,
   Sparkles,
   Loader2,
   Plus,
@@ -21,8 +20,6 @@ import {
   Mail,
   Share as ShareIcon,
   Search,
-  Paperclip,
-  Mic,
   Eraser,
   Share2,
   MoreHorizontal,
@@ -33,7 +30,6 @@ import {
   LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,12 +38,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
-import { PROMPT_TEMPLATES, getTemplateById } from "@/lib/ai/templates";
+import { PROMPT_TEMPLATES, getTemplateById, type PromptTemplate } from "@/lib/ai/templates";
 import { cn } from "@/lib/utils";
 import { ConversationSidebar } from "@/components/chat/conversation-sidebar";
 import { ChatMessageBubble } from "@/components/chat/chat-message";
+import { ChatComposer } from "@/components/chat/chat-composer";
 import { ShareDialog } from "@/components/chat/share-dialog";
-import { UsageLockOverlay } from "@/components/chat/usage-lock-overlay";
+import { exportConversationAsMarkdown, exportConversationAsPDF } from "@/lib/chat/export";
 import { Logo } from "@/components/logo";
 import type { Conversation, ChatMessage } from "@/lib/types/chat";
 
@@ -122,6 +119,10 @@ export function PlaygroundClient({
   const [shareLoading, setShareLoading] = useState(false);
   const [locked, setLocked] = useState(initiallyLocked);
   const [lockResetTime, setLockResetTime] = useState<string | null>(resetTime);
+  const [model, setModel] = useState("anthropic");
+  const [webSearch, setWebSearch] = useState(false);
+  const [deepThink, setDeepThink] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -174,17 +175,26 @@ export function PlaygroundClient({
   }
 
   async function sendMessage(content: string, opts?: { systemPrompt?: string }) {
-    if (!content.trim() || loading || locked) return;
+    if ((!content.trim() && attachments.length === 0) || loading || locked) return;
+
+    // Attachment upload/ingestion is wired in a later batch — for now we
+    // surface what was attached so nothing silently disappears.
+    const attachmentNote =
+      attachments.length > 0
+        ? `\n\n[Attached: ${attachments.map((f) => f.name).join(", ")}]`
+        : "";
+    const fullContent = `${content}${attachmentNote}`.trim();
 
     const optimisticUser: ChatMessage = {
       id: `optimistic-${Date.now()}`,
       role: "user",
-      content,
+      content: fullContent,
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimisticUser]);
     setInput("");
     setSelectedTemplate(null);
+    setAttachments([]);
     setLoading(true);
 
     try {
@@ -193,8 +203,15 @@ export function PlaygroundClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId: activeId,
-          content,
-          systemPrompt: opts?.systemPrompt,
+          content: fullContent,
+          systemPrompt:
+            opts?.systemPrompt ??
+            (webSearch
+              ? "The user has enabled web search intent — note in your answer if current information would materially change it, since live search isn't wired up yet."
+              : undefined),
+          preferredProvider: model,
+          temperature: deepThink ? 0.3 : undefined,
+          maxTokens: deepThink ? 4096 : undefined,
         }),
       });
       const data = await res.json();
@@ -392,6 +409,21 @@ export function PlaygroundClient({
     }
   }
 
+  function selectTemplateFromLibrary(template: PromptTemplate) {
+    selectTemplate(template.id);
+  }
+
+  function handleFeedback(messageId: string, feedback: "up" | "down") {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, feedback: m.feedback === feedback ? null : feedback } : m))
+    );
+  }
+
+  async function handleContinueWriting() {
+    if (!activeId || loading || locked) return;
+    await sendMessage("Continue writing from exactly where you left off.");
+  }
+
   function autoResizeTextarea() {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -532,6 +564,16 @@ export function PlaygroundClient({
                   <DropdownMenuItem onSelect={() => openShareDialog(activeId)}>
                     <Share2 className="h-4 w-4" /> Share chat
                   </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => exportConversationAsMarkdown(activeConversation?.title ?? "Conversation", messages)}
+                  >
+                    <FileText className="h-4 w-4" /> Export as Markdown
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => exportConversationAsPDF(activeConversation?.title ?? "Conversation", messages)}
+                  >
+                    <FileText className="h-4 w-4" /> Export as PDF
+                  </DropdownMenuItem>
                   <DropdownMenuItem onSelect={handleClearChat}>
                     <Eraser className="h-4 w-4" /> Clear messages
                   </DropdownMenuItem>
@@ -546,7 +588,7 @@ export function PlaygroundClient({
 
         <div className="flex flex-1 flex-col overflow-hidden">
           <div ref={scrollRef} className="flex-1 overflow-y-auto">
-            <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:max-w-4xl">
+            <div className="mx-auto max-w-[900px] px-4 py-8 sm:px-6">
               {historyLoading && (
                 <div className="flex justify-center py-10">
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -600,70 +642,48 @@ export function PlaygroundClient({
                     <ChatMessageBubble
                       message={m}
                       isLastAssistant={m.id === lastAssistantId}
+                      conversationTitle={activeConversation?.title}
                       onEditSubmit={handleEditMessage}
                       onRegenerate={handleRegenerate}
+                      onShare={activeId ? () => openShareDialog(activeId) : undefined}
+                      onContinueWriting={m.id === lastAssistantId ? handleContinueWriting : undefined}
+                      onFeedback={handleFeedback}
                     />
                   </motion.div>
                 ))}
               </AnimatePresence>
 
               {loading && (
-                <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                <div className="mb-6 flex items-center gap-3 pl-11 text-sm text-muted-foreground">
+                  <span className="flex gap-1">
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary [animation-delay:-0.3s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary [animation-delay:-0.15s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary" />
+                  </span>
                   <span>Thinking...</span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Input Area */}
-          <div className="border-t border-border/50 bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
-            <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6 lg:max-w-4xl">
-              <div className="relative flex items-end gap-2 rounded-2xl border border-border/50 bg-card p-2 shadow-glass">
-                {locked && <UsageLockOverlay resetTime={lockResetTime} />}
-                <Button variant="ghost" size="icon" className="shrink-0 rounded-xl hover:bg-accent" disabled>
-                  <Paperclip className="h-4 w-4" />
-                </Button>
-                <Textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSend();
-                    }
-                  }}
-                  placeholder={locked ? "You're out of credit — upgrade to keep chatting" : "Type your message..."}
-                  disabled={locked}
-                  className="min-h-[60px] max-h-[200px] resize-none border-0 bg-transparent px-3 py-2 text-sm focus-visible:ring-0 focus-visible:shadow-none"
-                  rows={1}
-                />
-                <Button variant="ghost" size="icon" className="shrink-0 rounded-xl hover:bg-accent" disabled>
-                  <Mic className="h-4 w-4" />
-                </Button>
-                <Button
-                  onClick={handleSend}
-                  disabled={loading || locked || !input.trim()}
-                  size="icon"
-                  className="shrink-0 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-                >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                </Button>
-              </div>
-              {selectedTemplate && (
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>Template:</span>
-                    <span className="font-medium">{getTemplateById(selectedTemplate)?.name}</span>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={() => setSelectedTemplate(null)}>
-                    Clear
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
+          <ChatComposer
+            value={input}
+            onChange={setInput}
+            onSend={handleSend}
+            loading={loading}
+            locked={locked}
+            lockResetTime={lockResetTime}
+            textareaRef={textareaRef}
+            model={model}
+            onModelChange={setModel}
+            webSearch={webSearch}
+            onWebSearchChange={setWebSearch}
+            deepThink={deepThink}
+            onDeepThinkChange={setDeepThink}
+            onSelectTemplate={selectTemplateFromLibrary}
+            attachments={attachments}
+            onAttachmentsChange={setAttachments}
+          />
         </div>
       </main>
 

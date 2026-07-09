@@ -1,24 +1,84 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Pencil, RefreshCw, Sparkles, X } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Pencil,
+  RefreshCw,
+  Sparkles,
+  Share2,
+  FileDown,
+  FileText,
+  ThumbsUp,
+  ThumbsDown,
+  RotateCcw,
+  ChevronsDown,
+  User,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { MessageContent } from "./message-content";
+import { useStreamingText } from "@/lib/hooks/use-streaming-text";
+import { exportConversationAsMarkdown, exportConversationAsPDF } from "@/lib/chat/export";
 import type { ChatMessage } from "@/lib/types/chat";
 
 interface ChatMessageBubbleProps {
   message: ChatMessage;
   isLastAssistant: boolean;
+  conversationTitle?: string;
   onEditSubmit: (messageId: string, newContent: string) => void;
   onRegenerate: () => void;
+  onShare?: () => void;
+  onContinueWriting?: () => void;
+  onFeedback?: (messageId: string, feedback: "up" | "down") => void;
 }
 
-export function ChatMessageBubble({ message, isLastAssistant, onEditSubmit, onRegenerate }: ChatMessageBubbleProps) {
+function ActionButton({
+  onClick,
+  title,
+  active,
+  children,
+}: {
+  onClick: () => void;
+  title: string;
+  active?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Button
+      size="icon"
+      variant="ghost"
+      className={cn("h-7 w-7 rounded-lg", active && "bg-primary/10 text-primary")}
+      onClick={onClick}
+      title={title}
+    >
+      {children}
+    </Button>
+  );
+}
+
+export function ChatMessageBubble({
+  message,
+  isLastAssistant,
+  conversationTitle,
+  onEditSubmit,
+  onRegenerate,
+  onShare,
+  onContinueWriting,
+  onFeedback,
+}: ChatMessageBubbleProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(message.content);
   const [copied, setCopied] = useState(false);
   const isUser = message.role === "user";
+  const isOptimistic = message.id.startsWith("optimistic-");
+
+  const { visible, done } = useStreamingText(
+    message.content,
+    !isUser && !message.error && !message.streamed && isLastAssistant
+  );
 
   async function copy() {
     await navigator.clipboard.writeText(message.content);
@@ -58,49 +118,112 @@ export function ChatMessageBubble({ message, isLastAssistant, onEditSubmit, onRe
   }
 
   return (
-    <div className={cn("group mb-6", isUser ? "flex justify-end" : "flex justify-start")}>
-      <div className="flex max-w-[85%] flex-col items-start gap-1.5">
-        <div className="flex items-start gap-3">
-          {!isUser && (
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-              <Sparkles className="h-4 w-4 text-primary" />
-            </div>
-          )}
+    <div className={cn("group mb-7", isUser ? "flex justify-end" : "flex justify-start")}>
+      <div className={cn("flex w-full flex-col gap-1.5", isUser ? "max-w-[85%] items-end" : "max-w-[95%] items-start")}>
+        <div className={cn("flex items-start gap-3", isUser && "flex-row-reverse")}>
           <div
             className={cn(
-              "rounded-2xl px-5 py-3 shadow-sm",
-              isUser
-                ? "bg-primary text-primary-foreground"
-                : message.error
-                ? "bg-destructive/10 text-destructive border border-destructive/20"
-                : "bg-card border border-border/50"
+              "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+              isUser ? "bg-accent" : "bg-gradient-to-br from-primary to-brand-cyan shadow-sm"
             )}
           >
-            <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+            {isUser ? <User className="h-4 w-4 text-foreground/70" /> : <Sparkles className="h-4 w-4 text-white" />}
           </div>
+
+          {isUser ? (
+            <div className="rounded-2xl rounded-tr-md bg-primary px-5 py-3 text-primary-foreground shadow-sm">
+              <p className="whitespace-pre-wrap text-[15px] leading-relaxed">{message.content}</p>
+            </div>
+          ) : (
+            <div
+              className={cn(
+                "min-w-0 rounded-2xl rounded-tl-md px-5 py-3.5 shadow-sm",
+                message.error
+                  ? "bg-destructive/10 text-destructive border border-destructive/20"
+                  : "bg-card border border-border/50"
+              )}
+            >
+              <MessageContent content={visible} className="text-[15px]" />
+              {!done && (
+                <span className="ml-0.5 inline-block h-4 w-[2px] animate-pulse bg-primary align-middle" />
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Hover actions */}
+        {/* Hover / persistent action row */}
         <div
           className={cn(
-            "flex items-center gap-1 px-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100",
-            isUser ? "self-end" : "self-start pl-11"
+            "flex items-center gap-0.5 px-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100",
+            isUser ? "self-end" : "self-start pl-11",
+            isOptimistic && "hidden"
           )}
         >
-          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={copy} title="Copy">
-            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-          </Button>
+          <ActionButton onClick={copy} title="Copy">
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+          </ActionButton>
+
           {isUser && (
-            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditing(true)} title="Edit">
-              <Pencil className="h-3 w-3" />
-            </Button>
+            <ActionButton onClick={() => setEditing(true)} title="Edit prompt">
+              <Pencil className="h-3.5 w-3.5" />
+            </ActionButton>
           )}
-          {!isUser && isLastAssistant && (
-            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={onRegenerate} title="Regenerate">
-              <RefreshCw className="h-3 w-3" />
-            </Button>
+
+          {!isUser && !message.error && (
+            <>
+              <ActionButton
+                onClick={() => onFeedback?.(message.id, "up")}
+                title="Good response"
+                active={message.feedback === "up"}
+              >
+                <ThumbsUp className="h-3.5 w-3.5" />
+              </ActionButton>
+              <ActionButton
+                onClick={() => onFeedback?.(message.id, "down")}
+                title="Bad response"
+                active={message.feedback === "down"}
+              >
+                <ThumbsDown className="h-3.5 w-3.5" />
+              </ActionButton>
+              {isLastAssistant && (
+                <>
+                  <ActionButton onClick={onRegenerate} title="Regenerate">
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  </ActionButton>
+                  {onContinueWriting && (
+                    <ActionButton onClick={onContinueWriting} title="Continue writing">
+                      <ChevronsDown className="h-3.5 w-3.5" />
+                    </ActionButton>
+                  )}
+                </>
+              )}
+              {onShare && (
+                <ActionButton onClick={onShare} title="Share">
+                  <Share2 className="h-3.5 w-3.5" />
+                </ActionButton>
+              )}
+              <ActionButton
+                onClick={() => exportConversationAsMarkdown(conversationTitle ?? "Conversation", [message])}
+                title="Export as Markdown"
+              >
+                <FileText className="h-3.5 w-3.5" />
+              </ActionButton>
+              <ActionButton
+                onClick={() => exportConversationAsPDF(conversationTitle ?? "Conversation", [message])}
+                title="Export as PDF"
+              >
+                <FileDown className="h-3.5 w-3.5" />
+              </ActionButton>
+            </>
           )}
-          {message.edited_at && <span className="text-[10px] italic">edited</span>}
+
+          {message.error && (
+            <ActionButton onClick={onRegenerate} title="Retry">
+              <RotateCcw className="h-3.5 w-3.5" />
+            </ActionButton>
+          )}
+
+          {message.edited_at && <span className="ml-1 text-[10px] italic">edited</span>}
         </div>
       </div>
     </div>

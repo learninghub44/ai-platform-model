@@ -18,4 +18,8 @@ export interface ChatMessage {
   created_at: string;
   /** Client-only: set while a message is being edited inline */
   pending?: boolean;
+  /** Client-only: has this message already finished its stream reveal? */
+  streamed?: boolean;
+  /** Client-only: thumbs feedback, not persisted */
+  feedback?: "up" | "down" | null;
 }

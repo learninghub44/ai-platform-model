@@ -283,10 +283,12 @@ function StepShell({
 }) {
   return (
     <div className="animate-fade-in">
-      <p className="text-xs font-medium uppercase tracking-wide text-primary">{eyebrow}</p>
-      <h1 className="mt-2 font-display text-2xl font-medium">{title}</h1>
-      <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-      <div className="mt-6">{children}</div>
+      <p className="text-sm font-semibold uppercase tracking-wide text-primary">{eyebrow}</p>
+      <h1 className="mt-2 font-sans text-3xl font-semibold leading-tight tracking-tight text-foreground">
+        {title}
+      </h1>
+      <p className="mt-2 text-base text-muted-foreground">{subtitle}</p>
+      <div className="mt-7">{children}</div>
     </div>
   );
 }
@@ -324,8 +326,8 @@ function OptionCard({
         <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground">{hint}</p>
+        <p className="text-sm font-semibold text-foreground">{label}</p>
+        <p className="text-sm text-muted-foreground">{hint}</p>
       </div>
       {selected && (
         <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
@@ -366,7 +368,7 @@ function BigOptionCard({
       >
         <Icon className="h-5 w-5" />
       </div>
-      <p className="text-sm font-medium text-foreground">{label}</p>
+      <p className="text-sm font-semibold text-foreground">{label}</p>
     </button>
   );
 }

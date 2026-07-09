@@ -1,12 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import dynamic from "next/dynamic";
+import { PrismAsyncLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useTheme } from "next-themes";
-import { Check, Copy, Download, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, Copy, Download, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MermaidDiagram } from "./mermaid-diagram";
+
+// ssr: false keeps mermaid + its parser/layout deps (cytoscape, etc.) out of
+// the server render entirely. On Cloudflare Workers there's no filesystem to
+// lazy-load chunks from at request time, so a plain dynamic import() still
+// gets inlined into the worker bundle — ssr:false is what actually excludes it.
+const MermaidDiagram = dynamic(
+  () => import("./mermaid-diagram").then((mod) => mod.MermaidDiagram),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="my-3 flex items-center gap-2 rounded-xl border border-border/50 bg-muted/40 p-6 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Loading diagram renderer...
+      </div>
+    ),
+  }
+);
 
 const EXT_MAP: Record<string, string> = {
   javascript: "js",

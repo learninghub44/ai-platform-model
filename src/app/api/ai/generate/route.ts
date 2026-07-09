@@ -215,14 +215,26 @@ export async function POST(req: NextRequest) {
       }))
     );
 
-    const errorText = err instanceof Error ? err.message : "All AI providers failed";
+    // Full detail (provider names, HTTP status, upstream error body) is
+    // logged server-side only — via ai_usage_logs above and console.error
+    // here. The user never sees raw provider/API errors; they see a single
+    // friendly message and can hit Retry (which re-runs the whole failover
+    // chain, so a transient or since-fixed provider issue clears on its own).
+    const rawError = err instanceof Error ? err.message : "All AI providers failed";
+    console.error("[ai/generate] all providers failed:", rawError);
+
+    const userFacingText =
+      "I couldn't get a response right now. Please try again in a moment.";
 
     const { data: errorMessage } = await supabase
       .from("messages")
-      .insert({ conversation_id: conversation.id, user_id: user.id, role: "assistant", content: errorText, error: true })
+      .insert({ conversation_id: conversation.id, user_id: user.id, role: "assistant", content: userFacingText, error: true })
       .select("id, role, content, error, created_at")
       .single();
 
-    return NextResponse.json({ conversation, userMessage, assistantMessage: errorMessage, error: errorText }, { status: 502 });
+    return NextResponse.json(
+      { conversation, userMessage, assistantMessage: errorMessage, error: userFacingText },
+      { status: 502 }
+    );
   }
 }

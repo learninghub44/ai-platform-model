@@ -2,7 +2,10 @@ import { AIProvider, AIGenerateParams, AIGenerateResult, AIProviderError } from 
 import { hasEnv } from "../env";
 import { flattenToText } from "../content";
 
-const MODEL = "llama-3.3-70b-versatile";
+// llama-3.3-70b-versatile was deprecated by Groq on 2026-06-17.
+// openai/gpt-oss-120b is Groq's recommended general-purpose replacement.
+// https://console.groq.com/docs/deprecations
+const MODEL = "openai/gpt-oss-120b";
 
 export const groqProvider: AIProvider = {
   name: "groq",

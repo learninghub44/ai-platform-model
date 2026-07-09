@@ -399,7 +399,7 @@ export function ChatComposer({
         </div>
 
         <p className="mt-2 text-center text-[11px] text-muted-foreground">
-          AI responses can be inaccurate. Verify important information.
+          XETU AI can make mistakes. Verify important information.
         </p>
 
         <input

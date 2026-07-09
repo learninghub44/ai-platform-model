@@ -35,7 +35,7 @@ export default async function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Appearance</CardTitle>
-          <CardDescription>Switch between light and dark canvas.</CardDescription>
+          <CardDescription>Switch between light, dark, or match your system.</CardDescription>
         </CardHeader>
         <CardContent>
           <ThemeToggle />

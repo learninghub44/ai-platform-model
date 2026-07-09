@@ -12,6 +12,11 @@ const config: Config = {
       screens: { "2xl": "1400px" },
     },
     extend: {
+      fontFamily: {
+        sans: ["var(--font-body)", "Inter", "sans-serif"],
+        display: ["var(--font-display)", "Geist", "sans-serif"],
+        "mono-data": ["var(--font-mono-data)", "Geist Mono", "monospace"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

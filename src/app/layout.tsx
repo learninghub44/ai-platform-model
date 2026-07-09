@@ -1,15 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
-import { ThemeScript } from "@/components/theme-script";
+import { ThemeProvider } from "@/components/theme-provider";
 
-const display = Fraunces({
+// Font system: Geist for display/headings, Inter for body copy, Geist Mono
+// for the ledger-tape / data-table numerals.
+const display = Geist({
   subsets: ["latin"],
   variable: "--font-display",
-  weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const body = Inter({
@@ -17,7 +18,7 @@ const body = Inter({
   variable: "--font-body",
 });
 
-const mono = IBM_Plex_Mono({
+const mono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono-data",
   weight: ["400", "500"],
@@ -45,16 +46,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`dark ${display.variable} ${body.variable} ${mono.variable}`}
+      className={`${display.variable} ${body.variable} ${mono.variable}`}
       suppressHydrationWarning
     >
-      <head>
-        <ThemeScript />
-      </head>
       <body className="min-h-screen font-sans antialiased" style={{ fontFamily: "var(--font-body), Inter, sans-serif" }}>
-        {children}
-        <Toaster position="top-right" richColors />
-        <ServiceWorkerRegister />
+        <ThemeProvider>
+          {children}
+          <Toaster position="top-right" richColors />
+          <ServiceWorkerRegister />
+        </ThemeProvider>
       </body>
     </html>
   );

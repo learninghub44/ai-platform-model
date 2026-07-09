@@ -78,6 +78,11 @@
   * {
     @apply border-border;
   }
+  html {
+    /* Bumps every rem-based Tailwind text size up ~12.5% app-wide
+       (browser default is 16px). */
+    font-size: 18px;
+  }
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "cv11", "ss01";

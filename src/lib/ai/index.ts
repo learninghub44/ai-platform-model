@@ -82,7 +82,17 @@ export interface AIGenerateOptions extends AIGenerateParams {
 export async function generateWithFailover(options: AIGenerateOptions): Promise<AIGenerateResult> {
   const { preferredProvider, onAttempt, ...params } = options;
 
-  const order = preferredProvider ? [preferredProvider] : getPriorityOrder();
+  // preferredProvider is a priority *hint*, not an exclusive restriction —
+  // it's tried first, but failure still falls through to the rest of the
+  // priority order. Treating it as exclusive (the old `[preferredProvider]`
+  // behavior) meant any caller that sends a preferred provider — including
+  // the AI Playground, which defaults to "anthropic" — got zero failover:
+  // if that one provider was unconfigured or hit a limit, the request
+  // failed outright even when other providers (e.g. Groq) were configured
+  // and working fine.
+  const order = preferredProvider
+    ? [preferredProvider, ...getPriorityOrder().filter((p) => p !== preferredProvider)]
+    : getPriorityOrder();
   const skipped: string[] = [];
   const failed: string[] = [];
 

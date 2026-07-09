@@ -7,6 +7,17 @@ import { groqProvider } from "./providers/groq";
 import { togetherProvider } from "./providers/together";
 import { cohereProvider } from "./providers/cohere";
 import { deepseekProvider } from "./providers/deepseek";
+import { cerebrasProvider } from "./providers/cerebras";
+import { sambanovaProvider } from "./providers/sambanova";
+import { fireworksProvider } from "./providers/fireworks";
+import { xaiProvider } from "./providers/xai";
+import { mistralProvider } from "./providers/mistral";
+import { nebiusProvider } from "./providers/nebius";
+import { huggingfaceProvider } from "./providers/huggingface";
+import { cloudflareWorkersAiProvider } from "./providers/cloudflare-workers-ai";
+import { azureOpenAiProvider } from "./providers/azure-openai";
+import { bedrockProvider } from "./providers/bedrock";
+import { replicateProvider } from "./providers/replicate";
 
 const REGISTRY: Record<string, AIProvider> = {
   openai: openaiProvider,
@@ -17,6 +28,17 @@ const REGISTRY: Record<string, AIProvider> = {
   together: togetherProvider,
   cohere: cohereProvider,
   deepseek: deepseekProvider,
+  cerebras: cerebrasProvider,
+  sambanova: sambanovaProvider,
+  fireworks: fireworksProvider,
+  xai: xaiProvider,
+  mistral: mistralProvider,
+  nebius: nebiusProvider,
+  huggingface: huggingfaceProvider,
+  "cloudflare-workers-ai": cloudflareWorkersAiProvider,
+  "azure-openai": azureOpenAiProvider,
+  bedrock: bedrockProvider,
+  replicate: replicateProvider,
 };
 
 function getPriorityOrder(): string[] {

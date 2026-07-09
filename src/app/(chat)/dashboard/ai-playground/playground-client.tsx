@@ -57,6 +57,13 @@ const APP_NAV_ITEMS = [
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
 const ICON_MAP: Record<string, any> = {
   Document: FileText,
   Pen,
@@ -93,6 +100,7 @@ export function PlaygroundClient({
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
   const initials = (fullName || email || "?").slice(0, 2).toUpperCase();
+  const firstName = fullName?.split(" ")[0] || email?.split("@")[0];
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -483,7 +491,9 @@ export function PlaygroundClient({
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-foreground">{fullName || "Your account"}</p>
+              <p className="truncate text-sm font-medium text-foreground">
+                {firstName ? `Welcome back, ${firstName}` : "Your account"}
+              </p>
               <p className="truncate text-xs text-muted-foreground">{email}</p>
             </div>
             <button
@@ -500,7 +510,7 @@ export function PlaygroundClient({
 
       {/* Main Content */}
       <main className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-border/50 px-6 py-4 bg-background/95 backdrop-blur-xl">
+        <header className="flex items-center justify-between border-b border-border/50 px-4 py-4 bg-background/95 backdrop-blur-xl sm:px-6">
           <div className="flex items-center gap-3 min-w-0">
             <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="rounded-xl hover:bg-accent shrink-0">
               <PanelLeft className="h-5 w-5" />
@@ -536,7 +546,7 @@ export function PlaygroundClient({
 
         <div className="flex flex-1 flex-col overflow-hidden">
           <div ref={scrollRef} className="flex-1 overflow-y-auto">
-            <div className="mx-auto max-w-3xl px-6 py-8">
+            <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:max-w-4xl">
               {historyLoading && (
                 <div className="flex justify-center py-10">
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -544,29 +554,32 @@ export function PlaygroundClient({
               )}
 
               {!historyLoading && messages.length === 0 && (
-                <div className="flex h-full min-h-[400px] flex-col items-center justify-center text-center px-4">
-                  <div className="mb-8 rounded-2xl bg-primary/10 p-6">
-                    <Sparkles className="h-12 w-12 text-primary" />
+                <div className="flex min-h-[65vh] flex-col items-center justify-center px-4 text-center">
+                  <div className="mb-6 rounded-2xl bg-primary/10 p-5">
+                    <Sparkles className="h-10 w-10 text-primary sm:h-12 sm:w-12" />
                   </div>
-                  <h2 className="mb-3 text-2xl font-semibold">How can I help you today?</h2>
-                  <p className="mb-8 text-muted-foreground max-w-md">
-                    Choose a template or start typing your question
+                  <h2 className="mb-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+                    {getGreeting()}
+                    {firstName ? `, ${firstName}` : ""}
+                  </h2>
+                  <p className="mb-8 max-w-md text-base text-muted-foreground sm:text-lg">
+                    How can I help you today? Choose a template below or just start typing.
                   </p>
-                  <div className="grid gap-4 sm:grid-cols-2 w-full max-w-2xl">
+                  <div className="grid w-full max-w-2xl gap-3 sm:grid-cols-2 sm:gap-4">
                     {PROMPT_TEMPLATES.slice(0, 4).map((template) => {
                       const IconComponent = ICON_MAP[template.icon] || FileText;
                       return (
                         <button
                           key={template.id}
                           onClick={() => selectTemplate(template.id)}
-                          className="group rounded-2xl border border-border/50 bg-card p-5 text-left hover:border-primary/50 hover:shadow-glass-md transition-all duration-200"
+                          className="group rounded-2xl border border-border/50 bg-card p-4 text-left transition-all duration-200 hover:border-primary/50 hover:shadow-glass-md sm:p-5"
                         >
                           <div className="mb-3 flex items-center gap-3">
                             <div className="rounded-xl bg-primary/10 p-2">
                               <IconComponent className="h-5 w-5 text-primary" />
                             </div>
                           </div>
-                          <div className="font-medium text-sm">{template.name}</div>
+                          <div className="text-sm font-medium">{template.name}</div>
                           <div className="mt-1 text-xs text-muted-foreground">{template.description}</div>
                         </button>
                       );
@@ -605,7 +618,7 @@ export function PlaygroundClient({
 
           {/* Input Area */}
           <div className="border-t border-border/50 bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
-            <div className="mx-auto max-w-3xl px-6 py-4">
+            <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6 lg:max-w-4xl">
               <div className="relative flex items-end gap-2 rounded-2xl border border-border/50 bg-card p-2 shadow-glass">
                 {locked && <UsageLockOverlay resetTime={lockResetTime} />}
                 <Button variant="ghost" size="icon" className="shrink-0 rounded-xl hover:bg-accent" disabled>

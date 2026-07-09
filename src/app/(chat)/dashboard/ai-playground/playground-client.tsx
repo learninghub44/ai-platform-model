@@ -821,7 +821,7 @@ export function PlaygroundClient({
                     <Sparkles className="h-10 w-10 text-primary sm:h-12 sm:w-12" />
                   </div>
                   <h2 className="mb-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-                    {getGreeting()}
+                    <span suppressHydrationWarning>{getGreeting()}</span>
                     {firstName ? `, ${firstName}` : ""}
                   </h2>
                   <p className="mb-8 max-w-md text-base text-muted-foreground sm:text-lg">

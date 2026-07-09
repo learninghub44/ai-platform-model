@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Globe2, Loader2, Lock } from "lucide-react";
+import { Check, Copy, Globe2, Loader2, Lock, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,6 +17,7 @@ interface ShareDialogProps {
   onOpenChange: (open: boolean) => void;
   isShared: boolean;
   shareUrl: string | null;
+  conversationTitle?: string;
   loading: boolean;
   onEnableShare: () => void;
   onDisableShare: () => void;
@@ -27,17 +28,28 @@ export function ShareDialog({
   onOpenChange,
   isShared,
   shareUrl,
+  conversationTitle,
   loading,
   onEnableShare,
   onDisableShare,
 }: ShareDialogProps) {
   const [copied, setCopied] = useState(false);
+  const canNativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   async function copyLink() {
     if (!shareUrl) return;
     await navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function nativeShare() {
+    if (!shareUrl) return;
+    try {
+      await navigator.share({ title: conversationTitle || "Shared chat", url: shareUrl });
+    } catch {
+      // User cancelled the native share sheet — nothing to do.
+    }
   }
 
   return (
@@ -61,6 +73,11 @@ export function ShareDialog({
                 {copied ? "Copied" : "Copy"}
               </Button>
             </div>
+            {canNativeShare && (
+              <Button variant="secondary" className="w-full gap-2" onClick={nativeShare}>
+                <Share2 className="h-4 w-4" /> Share via...
+              </Button>
+            )}
             <Button variant="ghost" className="gap-2 text-muted-foreground" onClick={onDisableShare} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
               Make private again

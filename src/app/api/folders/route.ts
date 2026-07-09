@@ -12,17 +12,16 @@ export async function GET() {
   }
 
   const { data, error } = await supabase
-    .from("conversations")
-    .select("id, title, pinned, pinned_at, is_shared, share_id, folder_id, last_message_at, created_at")
+    .from("folders")
+    .select("id, name, color, position, created_at")
     .eq("user_id", user.id)
-    .order("pinned", { ascending: false })
-    .order("last_message_at", { ascending: false });
+    .order("position", { ascending: true });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ conversations: data });
+  return NextResponse.json({ folders: data });
 }
 
 export async function POST(req: NextRequest) {
@@ -36,17 +35,27 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const title = typeof body?.title === "string" && body.title.trim() ? body.title.trim() : "New chat";
+  const name = typeof body?.name === "string" ? body.name.trim().slice(0, 60) : "";
+  const color = typeof body?.color === "string" && body.color.trim() ? body.color.trim() : "gray";
+
+  if (!name) {
+    return NextResponse.json({ error: "name is required" }, { status: 400 });
+  }
+
+  const { count } = await supabase
+    .from("folders")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
 
   const { data, error } = await supabase
-    .from("conversations")
-    .insert({ user_id: user.id, title })
-    .select("id, title, pinned, pinned_at, is_shared, share_id, folder_id, last_message_at, created_at")
+    .from("folders")
+    .insert({ user_id: user.id, name, color, position: count ?? 0 })
+    .select("id, name, color, position, created_at")
     .single();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ conversation: data });
+  return NextResponse.json({ folder: data });
 }

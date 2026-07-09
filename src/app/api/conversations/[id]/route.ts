@@ -14,7 +14,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const { data: conversation, error: convError } = await supabase
     .from("conversations")
-    .select("id, title, pinned, pinned_at, is_shared, share_id, last_message_at, created_at")
+    .select("id, title, pinned, pinned_at, is_shared, share_id, folder_id, last_message_at, created_at")
     .eq("id", id)
     .single();
 
@@ -56,13 +56,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     updates.pinned = body.pinned;
     updates.pinned_at = body.pinned ? new Date().toISOString() : null;
   }
+  if (typeof body.folder_id === "string" || body.folder_id === null) {
+    updates.folder_id = body.folder_id;
+  }
 
   const { data, error } = await supabase
     .from("conversations")
     .update(updates)
     .eq("id", id)
     .eq("user_id", user.id)
-    .select("id, title, pinned, pinned_at, is_shared, share_id, last_message_at, created_at")
+    .select("id, title, pinned, pinned_at, is_shared, share_id, folder_id, last_message_at, created_at")
     .single();
 
   if (error) {

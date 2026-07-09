@@ -16,6 +16,9 @@ import {
   ChevronsDown,
   User,
   Paperclip,
+  Wand2,
+  Shuffle,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,6 +37,9 @@ interface ChatMessageBubbleProps {
   onShare?: () => void;
   onContinueWriting?: () => void;
   onFeedback?: (messageId: string, feedback: "up" | "down") => void;
+  /** Image-gen follow-ups on a generated image attachment — omitted where not applicable (e.g. shared read-only view). */
+  onImageAction?: (action: "upscale" | "variation" | "regenerate", attachment: NonNullable<ChatMessage["attachments"]>[number]) => void;
+  imageActionLoading?: string | null;
 }
 
 function ActionButton({
@@ -69,6 +75,8 @@ export function ChatMessageBubble({
   onShare,
   onContinueWriting,
   onFeedback,
+  onImageAction,
+  imageActionLoading,
 }: ChatMessageBubbleProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(message.content);
@@ -167,9 +175,52 @@ export function ChatMessageBubble({
                   : "bg-card border border-border/50"
               )}
             >
-              <MessageContent content={visible} className="text-[15px]" />
+              {message.content && <MessageContent content={visible} className="text-[15px]" />}
               {!done && (
                 <span className="ml-0.5 inline-block h-4 w-[2px] animate-pulse bg-primary align-middle" />
+              )}
+
+              {message.attachments && message.attachments.some((a) => a.kind === "image" && a.generated) && (
+                <div className={cn("flex flex-wrap gap-3", message.content && "mt-3")}>
+                  {message.attachments
+                    .filter((a) => a.kind === "image" && a.generated)
+                    .map((att) => (
+                      <div key={att.id} className="overflow-hidden rounded-xl border border-border/50">
+                        <a href={att.url} target="_blank" rel="noreferrer" className="block">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={att.url} alt={att.prompt ?? "Generated image"} className="max-h-80 w-full object-cover" />
+                        </a>
+                        {onImageAction && (
+                          <div className="flex items-center gap-1 border-t border-border/50 bg-card/60 p-1.5">
+                            <ActionButton
+                              onClick={() => onImageAction("upscale", att)}
+                              title="Upscale — re-render at a larger size"
+                            >
+                              {imageActionLoading === `${att.id}-upscale` ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Wand2 className="h-3.5 w-3.5" />
+                              )}
+                            </ActionButton>
+                            <ActionButton onClick={() => onImageAction("variation", att)} title="Create a variation">
+                              {imageActionLoading === `${att.id}-variation` ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Shuffle className="h-3.5 w-3.5" />
+                              )}
+                            </ActionButton>
+                            <ActionButton onClick={() => onImageAction("regenerate", att)} title="Regenerate">
+                              {imageActionLoading === `${att.id}-regenerate` ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <RefreshCw className="h-3.5 w-3.5" />
+                              )}
+                            </ActionButton>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
               )}
             </div>
           )}

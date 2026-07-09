@@ -1,13 +1,15 @@
 "use client";
 
-import { useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import {
   Paperclip,
   Camera,
   Image as ImageIcon,
   Mic,
+  MicOff,
   Globe,
   BrainCircuit,
+  Sparkles,
   Plus,
   BookMarked,
   Send,
@@ -33,6 +35,7 @@ import { cn } from "@/lib/utils";
 import { UsageLockOverlay } from "./usage-lock-overlay";
 import { PROMPT_TEMPLATES, type PromptTemplate } from "@/lib/ai/templates";
 import type { PendingAttachment } from "@/lib/chat/attachments";
+import { useSpeechRecognition } from "@/lib/hooks/use-speech-recognition";
 
 export interface ModelOption {
   id: string;
@@ -65,6 +68,8 @@ interface ChatComposerProps {
   onWebSearchChange: (v: boolean) => void;
   deepThink: boolean;
   onDeepThinkChange: (v: boolean) => void;
+  imageMode: boolean;
+  onImageModeChange: (v: boolean) => void;
   onSelectTemplate: (template: PromptTemplate) => void;
   attachments: PendingAttachment[];
   onAddFiles: (files: File[]) => void;
@@ -135,6 +140,8 @@ export function ChatComposer({
   onWebSearchChange,
   deepThink,
   onDeepThinkChange,
+  imageMode,
+  onImageModeChange,
   onSelectTemplate,
   attachments,
   onAddFiles,
@@ -143,21 +150,42 @@ export function ChatComposer({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const [recording, setRecording] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const dragCounter = useRef(0);
+  const baseValueRef = useRef(value);
 
   const activeModel = MODEL_OPTIONS.find((m) => m.id === model) ?? MODEL_OPTIONS[0];
   const anyUploading = attachments.some((a) => a.status === "uploading");
 
+  const {
+    isSupported: voiceSupported,
+    recording,
+    interimTranscript,
+    error: speechError,
+    toggle: toggleVoice,
+  } = useSpeechRecognition({
+    onFinalResult: (text) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      onChange(`${baseValueRef.current}${baseValueRef.current && !baseValueRef.current.endsWith(" ") ? " " : ""}${trimmed} `);
+    },
+  });
+
+  // Track the latest committed value so each finalized speech chunk appends
+  // to what's already there, rather than to a stale snapshot from when
+  // recording started.
+  useEffect(() => {
+    baseValueRef.current = value;
+  }, [value]);
+
+  useEffect(() => {
+    if (speechError) setVoiceError(speechError);
+  }, [speechError]);
+
   function addFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
     onAddFiles(Array.from(fileList));
-  }
-
-  function toggleVoice() {
-    // Voice capture wiring lands in a later batch — this is a visual toggle for now.
-    setRecording((r) => !r);
   }
 
   function handleDragEnter(e: React.DragEvent) {
@@ -223,7 +251,7 @@ export function ChatComposer({
 
           <Textarea
             ref={textareaRef}
-            value={value}
+            value={recording && interimTranscript ? `${value}${value && !value.endsWith(" ") ? " " : ""}${interimTranscript}` : value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -235,11 +263,36 @@ export function ChatComposer({
               const files = e.clipboardData.files;
               if (files && files.length > 0) addFiles(files);
             }}
-            placeholder={locked ? "You're out of credit — upgrade to keep chatting" : "Message the assistant..."}
+            placeholder={
+              locked
+                ? "You're out of credit — upgrade to keep chatting"
+                : imageMode
+                ? "Describe the image you want to generate..."
+                : "Message the assistant..."
+            }
             disabled={locked}
             className="min-h-[56px] max-h-[240px] resize-none border-0 bg-transparent px-4 pt-4 pb-2 text-[15px] leading-relaxed focus-visible:ring-0 focus-visible:shadow-none"
             rows={1}
           />
+
+          {recording && (
+            <div className="flex items-center gap-1.5 px-4 pb-1 text-xs text-destructive">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-destructive" />
+              Listening...
+            </div>
+          )}
+          {voiceError && !recording && (
+            <div className="flex items-center gap-1.5 px-4 pb-1 text-xs text-muted-foreground">
+              <AlertCircle className="h-3 w-3 shrink-0" />
+              {voiceError}
+            </div>
+          )}
+          {imageMode && !recording && (
+            <div className="flex items-center gap-1.5 px-4 pb-1 text-xs text-primary">
+              <Sparkles className="h-3 w-3 shrink-0" />
+              Image mode — your message will be sent as an image prompt
+            </div>
+          )}
 
           <div className="flex items-center justify-between gap-2 px-2.5 pb-2.5">
             <div className="flex flex-wrap items-center gap-0.5">
@@ -270,10 +323,17 @@ export function ChatComposer({
                 variant="ghost"
                 size="icon"
                 className={cn("h-8 w-8 rounded-lg", recording && "bg-destructive/10 text-destructive")}
-                onClick={toggleVoice}
-                title="Voice input"
+                onClick={() => {
+                  setVoiceError(null);
+                  toggleVoice();
+                }}
+                title={voiceSupported ? "Voice input" : "Voice input isn't supported in this browser"}
               >
-                <Mic className={cn("h-4 w-4", recording && "animate-pulse")} />
+                {recording ? (
+                  <MicOff className="h-4 w-4 animate-pulse" />
+                ) : (
+                  <Mic className="h-4 w-4" />
+                )}
               </Button>
 
               <Button
@@ -302,6 +362,20 @@ export function ChatComposer({
               >
                 <BrainCircuit className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Deep think</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium",
+                  imageMode && "bg-primary/10 text-primary"
+                )}
+                onClick={() => onImageModeChange(!imageMode)}
+                title="Generate an image from your message instead of chatting"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Image</span>
               </Button>
 
               <DropdownMenu>
@@ -350,9 +424,15 @@ export function ChatComposer({
                 disabled={loading || locked || anyUploading || (!value.trim() && attachments.length === 0)}
                 size="icon"
                 className="h-9 w-9 shrink-0 rounded-xl bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
-                title={anyUploading ? "Waiting for attachments to finish uploading" : "Send"}
+                title={anyUploading ? "Waiting for attachments to finish uploading" : imageMode ? "Generate image" : "Send"}
               >
-                {loading || anyUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {loading || anyUploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : imageMode ? (
+                  <Sparkles className="h-4 w-4" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
               </Button>
             )}
           </div>

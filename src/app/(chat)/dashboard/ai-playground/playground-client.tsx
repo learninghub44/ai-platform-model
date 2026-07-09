@@ -23,6 +23,7 @@ import {
   Eraser,
   Share2,
   MoreHorizontal,
+  Copy,
   LayoutDashboard,
   CreditCard,
   Settings,
@@ -47,7 +48,7 @@ import { ShareDialog } from "@/components/chat/share-dialog";
 import { exportConversationAsMarkdown, exportConversationAsPDF } from "@/lib/chat/export";
 import { uploadAttachment, makeAttachmentId, type PendingAttachment } from "@/lib/chat/attachments";
 import { Logo } from "@/components/logo";
-import type { Conversation, ChatMessage } from "@/lib/types/chat";
+import type { Conversation, ChatMessage, Folder } from "@/lib/types/chat";
 
 const APP_NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -109,6 +110,7 @@ export function PlaygroundClient({
   }
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -123,6 +125,8 @@ export function PlaygroundClient({
   const [model, setModel] = useState("anthropic");
   const [webSearch, setWebSearch] = useState(false);
   const [deepThink, setDeepThink] = useState(false);
+  const [imageMode, setImageMode] = useState(false);
+  const [imageActionLoading, setImageActionLoading] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -138,10 +142,19 @@ export function PlaygroundClient({
     }
   }, []);
 
+  const loadFolders = useCallback(async () => {
+    const res = await fetch("/api/folders");
+    if (res.ok) {
+      const data = await res.json();
+      setFolders(data.folders ?? []);
+    }
+  }, []);
+
   useEffect(() => {
     if (window.matchMedia("(min-width: 768px)").matches) setSidebarOpen(true);
     loadConversations();
-  }, [loadConversations]);
+    loadFolders();
+  }, [loadConversations, loadFolders]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -283,8 +296,84 @@ export function PlaygroundClient({
     }
   }
 
+  async function sendImageGeneration(action: "generate" | "variation" | "upscale", prompt?: string, sourceUrl?: string) {
+    if (loading || locked) return;
+    if ((action === "generate" || action === "upscale") && !prompt?.trim()) return;
+
+    const label =
+      action === "variation" ? "Generate a variation" : action === "upscale" ? `Upscale: ${prompt}` : prompt!;
+    const optimisticUser: ChatMessage = {
+      id: `optimistic-${Date.now()}`,
+      role: "user",
+      content: label,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimisticUser]);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/ai/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId: activeId, action, prompt, sourceUrl }),
+      });
+      const data = await res.json();
+
+      if (res.status === 429) {
+        setMessages((prev) => prev.filter((m) => m.id !== optimisticUser.id));
+        if (action === "generate") setInput(prompt ?? "");
+        setLocked(true);
+        setLockResetTime(data.resetTime ?? null);
+      } else if (!res.ok) {
+        setMessages((prev) => [
+          ...prev.filter((m) => m.id !== optimisticUser.id),
+          { id: `err-${Date.now()}`, role: "assistant", content: data.error || "Image generation failed.", error: true, created_at: new Date().toISOString() },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev.filter((m) => m.id !== optimisticUser.id),
+          data.userMessage ?? optimisticUser,
+          data.assistantMessage,
+        ]);
+        if (!activeId && data.conversation) setActiveId(data.conversation.id);
+      }
+      await loadConversations();
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { id: `err-${Date.now()}`, role: "assistant", content: "Network error. Please check your connection.", error: true, created_at: new Date().toISOString() },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleImageAction(action: "upscale" | "variation" | "regenerate", attachment: NonNullable<ChatMessage["attachments"]>[number]) {
+    setImageActionLoading(`${attachment.id}-${action}`);
+    try {
+      if (action === "variation") {
+        await sendImageGeneration("variation", undefined, attachment.url);
+      } else if (action === "upscale") {
+        await sendImageGeneration("upscale", attachment.prompt ?? "");
+      } else {
+        await sendImageGeneration("generate", attachment.prompt ?? "");
+      }
+    } finally {
+      setImageActionLoading(null);
+    }
+  }
+
   async function handleSend() {
     if (locked) return;
+
+    if (imageMode) {
+      const prompt = input.trim();
+      if (!prompt) return;
+      await sendImageGeneration("generate", prompt);
+      return;
+    }
+
     let finalInput = input;
     let systemPrompt: string | undefined;
 
@@ -405,6 +494,48 @@ export function PlaygroundClient({
     await fetch(`/api/conversations/${id}`, { method: "DELETE" });
   }
 
+  async function handleDuplicate(id: string) {
+    const res = await fetch(`/api/conversations/${id}/duplicate`, { method: "POST" });
+    if (res.ok) {
+      const data = await res.json();
+      await loadConversations();
+      if (data.conversation) selectConversation(data.conversation.id);
+    }
+  }
+
+  async function handleMoveToFolder(id: string, folderId: string | null) {
+    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, folder_id: folderId } : c)));
+    await fetch(`/api/conversations/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ folder_id: folderId }),
+    });
+  }
+
+  async function handleCreateFolder(name: string) {
+    const res = await fetch("/api/folders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (res.ok) await loadFolders();
+  }
+
+  async function handleRenameFolder(id: string, name: string) {
+    setFolders((prev) => prev.map((f) => (f.id === id ? { ...f, name } : f)));
+    await fetch(`/api/folders/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+  }
+
+  async function handleDeleteFolder(id: string) {
+    setFolders((prev) => prev.filter((f) => f.id !== id));
+    setConversations((prev) => prev.map((c) => (c.folder_id === id ? { ...c, folder_id: null } : c)));
+    await fetch(`/api/folders/${id}`, { method: "DELETE" });
+  }
+
   function openShareDialog(id: string) {
     setActiveId(id);
     setShareDialogOpen(true);
@@ -511,12 +642,18 @@ export function PlaygroundClient({
         <div className="flex-1 overflow-y-auto px-3 pb-2">
           <ConversationSidebar
             conversations={conversations}
+            folders={folders}
             activeId={activeId}
             onSelect={selectConversation}
             onRename={handleRename}
             onTogglePin={handleTogglePin}
             onShare={openShareDialog}
             onDelete={handleDelete}
+            onDuplicate={handleDuplicate}
+            onMoveToFolder={handleMoveToFolder}
+            onCreateFolder={handleCreateFolder}
+            onRenameFolder={handleRenameFolder}
+            onDeleteFolder={handleDeleteFolder}
           />
         </div>
 
@@ -600,6 +737,9 @@ export function PlaygroundClient({
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem onSelect={() => openShareDialog(activeId)}>
                     <Share2 className="h-4 w-4" /> Share chat
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => handleDuplicate(activeId)}>
+                    <Copy className="h-4 w-4" /> Duplicate chat
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => exportConversationAsMarkdown(activeConversation?.title ?? "Conversation", messages)}
@@ -685,6 +825,8 @@ export function PlaygroundClient({
                       onShare={activeId ? () => openShareDialog(activeId) : undefined}
                       onContinueWriting={m.id === lastAssistantId ? handleContinueWriting : undefined}
                       onFeedback={handleFeedback}
+                      onImageAction={handleImageAction}
+                      imageActionLoading={imageActionLoading}
                     />
                   </motion.div>
                 ))}
@@ -717,6 +859,8 @@ export function PlaygroundClient({
             onWebSearchChange={setWebSearch}
             deepThink={deepThink}
             onDeepThinkChange={setDeepThink}
+            imageMode={imageMode}
+            onImageModeChange={setImageMode}
             onSelectTemplate={selectTemplateFromLibrary}
             attachments={attachments}
             onAddFiles={addAttachmentFiles}
@@ -730,6 +874,7 @@ export function PlaygroundClient({
         onOpenChange={setShareDialogOpen}
         isShared={Boolean(activeConversation?.is_shared)}
         shareUrl={shareUrl}
+        conversationTitle={activeConversation?.title}
         loading={shareLoading}
         onEnableShare={handleEnableShare}
         onDisableShare={handleDisableShare}

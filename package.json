@@ -19,6 +19,7 @@
     "@radix-ui/react-tooltip": "^1.2.12",
     "@supabase/ssr": "^0.5.1",
     "@supabase/supabase-js": "^2.45.4",
+    "aws4fetch": "^1.0.20",
     "class-variance-authority": "^0.7.0",
     "cloudinary": "^2.5.1",
     "clsx": "^2.1.1",

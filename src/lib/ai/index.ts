@@ -7,6 +7,17 @@ import { groqProvider } from "./providers/groq";
 import { togetherProvider } from "./providers/together";
 import { cohereProvider } from "./providers/cohere";
 import { deepseekProvider } from "./providers/deepseek";
+import { cerebrasProvider } from "./providers/cerebras";
+import { sambanovaProvider } from "./providers/sambanova";
+import { fireworksProvider } from "./providers/fireworks";
+import { xaiProvider } from "./providers/xai";
+import { mistralProvider } from "./providers/mistral";
+import { nebiusProvider } from "./providers/nebius";
+import { huggingfaceProvider } from "./providers/huggingface";
+import { cloudflareWorkersAiProvider } from "./providers/cloudflare-workers-ai";
+import { azureOpenAiProvider } from "./providers/azure-openai";
+import { bedrockProvider } from "./providers/bedrock";
+import { replicateProvider } from "./providers/replicate";
 
 const REGISTRY: Record<string, AIProvider> = {
   openai: openaiProvider,
@@ -17,7 +28,27 @@ const REGISTRY: Record<string, AIProvider> = {
   together: togetherProvider,
   cohere: cohereProvider,
   deepseek: deepseekProvider,
+  cerebras: cerebrasProvider,
+  sambanova: sambanovaProvider,
+  fireworks: fireworksProvider,
+  xai: xaiProvider,
+  mistral: mistralProvider,
+  nebius: nebiusProvider,
+  huggingface: huggingfaceProvider,
+  "cloudflare-workers-ai": cloudflareWorkersAiProvider,
+  "azure-openai": azureOpenAiProvider,
+  bedrock: bedrockProvider,
+  replicate: replicateProvider,
 };
+
+function shuffle<T>(arr: T[]): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
 
 function getPriorityOrder(): string[] {
   const configured = (process.env.AI_PROVIDER_PRIORITY || "")
@@ -25,9 +56,13 @@ function getPriorityOrder(): string[] {
     .map((s) => s.trim())
     .filter(Boolean);
   const all = Object.keys(REGISTRY);
-  // Any provider not explicitly listed is appended at the end, so nothing is
-  // silently dropped just because it's missing from the priority env var.
-  const rest = all.filter((p) => !configured.includes(p));
+  // Anything not explicitly listed in AI_PROVIDER_PRIORITY is shuffled
+  // rather than following REGISTRY's declaration order — otherwise whichever
+  // provider happens to be listed first in the object (openai, as it turns
+  // out) becomes a silent, unintentional default any time its key is set,
+  // even though every configured provider is equally valid. Set
+  // AI_PROVIDER_PRIORITY explicitly if you want a deliberate, stable order.
+  const rest = shuffle(all.filter((p) => !configured.includes(p)));
   return [...configured, ...rest].filter((p) => REGISTRY[p]);
 }
 

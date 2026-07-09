@@ -51,14 +51,30 @@ export async function POST(req: NextRequest) {
   }
 
   // Check daily limits
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("daily_requests_count, daily_requests_limit, daily_requests_reset")
     .eq("id", user.id)
     .single();
 
-  if (!profile) {
-    return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+  if (profileError || !profile) {
+    console.error("profile lookup failed", {
+      userId: user.id,
+      code: profileError?.code,
+      message: profileError?.message,
+      details: profileError?.details,
+      hint: profileError?.hint,
+    });
+    return NextResponse.json(
+      {
+        error: "Profile not found",
+        // TEMP diagnostic fields — remove once root cause is fixed
+        debugCode: profileError?.code ?? null,
+        debugMessage: profileError?.message ?? null,
+        debugHint: profileError?.hint ?? null,
+      },
+      { status: 404 }
+    );
   }
 
   if (profile.daily_requests_reset && new Date(profile.daily_requests_reset) <= new Date()) {

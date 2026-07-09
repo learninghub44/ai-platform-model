@@ -122,7 +122,6 @@ export function PlaygroundClient({
   const [shareLoading, setShareLoading] = useState(false);
   const [locked, setLocked] = useState(initiallyLocked);
   const [lockResetTime, setLockResetTime] = useState<string | null>(resetTime);
-  const [model, setModel] = useState("anthropic");
   const [webSearch, setWebSearch] = useState(false);
   const [deepThink, setDeepThink] = useState(false);
   const [imageMode, setImageMode] = useState(false);
@@ -255,7 +254,6 @@ export function PlaygroundClient({
           attachments: uploaded,
           webSearch,
           systemPrompt: opts?.systemPrompt,
-          preferredProvider: model,
           temperature: deepThink ? 0.3 : undefined,
           maxTokens: deepThink ? 4096 : undefined,
         }),
@@ -853,8 +851,6 @@ export function PlaygroundClient({
             locked={locked}
             lockResetTime={lockResetTime}
             textareaRef={textareaRef}
-            model={model}
-            onModelChange={setModel}
             webSearch={webSearch}
             onWebSearchChange={setWebSearch}
             deepThink={deepThink}

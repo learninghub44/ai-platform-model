@@ -15,7 +15,6 @@ import {
   Send,
   Square,
   Loader2,
-  ChevronDown,
   X,
   FileIcon,
   UploadCloud,
@@ -37,22 +36,6 @@ import { PROMPT_TEMPLATES, type PromptTemplate } from "@/lib/ai/templates";
 import type { PendingAttachment } from "@/lib/chat/attachments";
 import { useSpeechRecognition } from "@/lib/hooks/use-speech-recognition";
 
-export interface ModelOption {
-  id: string;
-  label: string;
-}
-
-const MODEL_OPTIONS: ModelOption[] = [
-  { id: "anthropic", label: "Claude" },
-  { id: "openai", label: "OpenAI" },
-  { id: "gemini", label: "Gemini" },
-  { id: "groq", label: "Groq" },
-  { id: "openrouter", label: "OpenRouter" },
-  { id: "together", label: "Together AI" },
-  { id: "cohere", label: "Cohere" },
-  { id: "deepseek", label: "DeepSeek" },
-];
-
 interface ChatComposerProps {
   value: string;
   onChange: (v: string) => void;
@@ -62,8 +45,6 @@ interface ChatComposerProps {
   locked: boolean;
   lockResetTime?: string | null;
   textareaRef: RefObject<HTMLTextAreaElement>;
-  model: string;
-  onModelChange: (model: string) => void;
   webSearch: boolean;
   onWebSearchChange: (v: boolean) => void;
   deepThink: boolean;
@@ -134,8 +115,6 @@ export function ChatComposer({
   locked,
   lockResetTime,
   textareaRef,
-  model,
-  onModelChange,
   webSearch,
   onWebSearchChange,
   deepThink,
@@ -155,7 +134,6 @@ export function ChatComposer({
   const dragCounter = useRef(0);
   const baseValueRef = useRef(value);
 
-  const activeModel = MODEL_OPTIONS.find((m) => m.id === model) ?? MODEL_OPTIONS[0];
   const anyUploading = attachments.some((a) => a.status === "uploading");
 
   const {
@@ -390,24 +368,6 @@ export function ChatComposer({
                   {PROMPT_TEMPLATES.map((t) => (
                     <DropdownMenuItem key={t.id} onSelect={() => onSelectTemplate(t)}>
                       {t.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 gap-1 rounded-lg px-2.5 text-xs font-medium">
-                    {activeModel.label}
-                    <ChevronDown className="h-3 w-3 opacity-60" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-44">
-                  <DropdownMenuLabel>Model</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {MODEL_OPTIONS.map((m) => (
-                    <DropdownMenuItem key={m.id} onSelect={() => onModelChange(m.id)}>
-                      {m.label}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>

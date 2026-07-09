@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { initializeTransaction } from "@/lib/payments/paystack";
+import { DEFAULT_CURRENCY, isEnabledCurrency } from "@/lib/payments/currencies";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -20,9 +21,33 @@ export async function POST(req: NextRequest) {
     planId?: string;
     metadata?: Record<string, unknown>;
   };
+  let { currency } = body as { currency?: string };
 
   if (!amountKobo || amountKobo <= 0) {
     return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+  }
+
+  if (currency && !isEnabledCurrency(currency)) {
+    return NextResponse.json(
+      { error: `Currency "${currency}" is not supported. Enabled currencies: KES, USD.` },
+      { status: 400 }
+    );
+  }
+
+  // Wallet top-ups must stay in the wallet's own currency, or the ledger
+  // trigger (which adds amount_kobo straight onto balance_kobo) would
+  // silently mix currencies together. Every other payment kind (one-off,
+  // subscription) is free to use any currency this Paystack account
+  // supports.
+  if (kind === "wallet_topup") {
+    const { data: wallet } = await supabase
+      .from("wallets")
+      .select("currency")
+      .eq("user_id", user.id)
+      .single();
+    currency = wallet?.currency ?? DEFAULT_CURRENCY;
+  } else {
+    currency = currency ?? DEFAULT_CURRENCY;
   }
 
   const reference = `pay_${randomUUID()}`;
@@ -32,6 +57,7 @@ export async function POST(req: NextRequest) {
     user_id: user.id,
     kind,
     amount_kobo: amountKobo,
+    currency,
     reference,
     metadata: metadata ?? {},
     related_subscription_id: planId ?? null,
@@ -46,6 +72,7 @@ export async function POST(req: NextRequest) {
       email: user.email!,
       amountKobo,
       reference,
+      currency,
       callbackUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/billing/callback`,
       metadata: { userId: user.id, kind, ...metadata },
     });

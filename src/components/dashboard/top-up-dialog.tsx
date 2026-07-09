@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { ENABLED_CURRENCIES, type PaystackCurrencyCode } from "@/lib/payments/currencies";
 
 const TOP_UP_TIERS = [
   { amount: 100, label: "Starter", description: "Quick top-up" },
@@ -22,8 +24,13 @@ const TOP_UP_TIERS = [
   { amount: 10000, label: "Business", description: "Team usage" },
 ];
 
-export function TopUpDialog({ currency = "KES" }: { currency?: string }) {
+export function TopUpDialog({ currency: initialCurrency = "KES" }: { currency?: string }) {
   const [amount, setAmount] = useState<number>(5000);
+  const [currency, setCurrency] = useState<PaystackCurrencyCode>(
+    ENABLED_CURRENCIES.includes(initialCurrency as PaystackCurrencyCode)
+      ? (initialCurrency as PaystackCurrencyCode)
+      : "KES"
+  );
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [customAmount, setCustomAmount] = useState<string>("");
@@ -36,6 +43,7 @@ export function TopUpDialog({ currency = "KES" }: { currency?: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amountKobo: Math.round(amount * 100),
+          currency,
           kind: "wallet_topup",
         }),
       });
@@ -93,6 +101,21 @@ export function TopUpDialog({ currency = "KES" }: { currency?: string }) {
             ))}
           </div>
           
+          <div>
+            <label className="text-xs text-muted-foreground">Currency</label>
+            <Select
+              className="mt-1"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value as PaystackCurrencyCode)}
+            >
+              {ENABLED_CURRENCIES.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
+            </Select>
+          </div>
+
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />

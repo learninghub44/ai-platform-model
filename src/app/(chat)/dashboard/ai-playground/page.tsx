@@ -12,9 +12,14 @@ export default async function AiPlaygroundPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, full_name, avatar_url")
+    .select("role, full_name, avatar_url, daily_requests_count, daily_requests_limit, daily_requests_reset")
     .eq("id", user.id)
     .single();
+
+  const outOfCredit = profile
+    ? profile.daily_requests_count >= profile.daily_requests_limit &&
+      new Date(profile.daily_requests_reset) > new Date()
+    : false;
 
   return (
     <PlaygroundClient
@@ -22,6 +27,8 @@ export default async function AiPlaygroundPage() {
       email={user.email ?? ""}
       fullName={profile?.full_name ?? null}
       avatarUrl={profile?.avatar_url ?? null}
+      initiallyLocked={outOfCredit}
+      resetTime={profile?.daily_requests_reset ?? null}
     />
   );
 }

@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 export function SubscribeButton({
   planId,
   priceKobo,
+  currency,
   label,
   variant = "default",
 }: {
   planId: string;
   priceKobo: number;
+  currency?: string;
   label: string;
   variant?: "default" | "outline";
 }) {
@@ -25,6 +27,7 @@ export function SubscribeButton({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amountKobo: priceKobo,
+          currency,
           kind: "subscription",
           planId,
         }),

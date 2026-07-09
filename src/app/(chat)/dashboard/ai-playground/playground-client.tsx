@@ -47,6 +47,7 @@ import { cn } from "@/lib/utils";
 import { ConversationSidebar } from "@/components/chat/conversation-sidebar";
 import { ChatMessageBubble } from "@/components/chat/chat-message";
 import { ShareDialog } from "@/components/chat/share-dialog";
+import { UsageLockOverlay } from "@/components/chat/usage-lock-overlay";
 import { Logo } from "@/components/logo";
 import type { Conversation, ChatMessage } from "@/lib/types/chat";
 
@@ -76,9 +77,18 @@ interface PlaygroundClientProps {
   email: string;
   fullName: string | null;
   avatarUrl: string | null;
+  initiallyLocked?: boolean;
+  resetTime?: string | null;
 }
 
-export function PlaygroundClient({ isAdmin, email, fullName, avatarUrl }: PlaygroundClientProps) {
+export function PlaygroundClient({
+  isAdmin,
+  email,
+  fullName,
+  avatarUrl,
+  initiallyLocked = false,
+  resetTime = null,
+}: PlaygroundClientProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
@@ -102,6 +112,8 @@ export function PlaygroundClient({ isAdmin, email, fullName, avatarUrl }: Playgr
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
+  const [locked, setLocked] = useState(initiallyLocked);
+  const [lockResetTime, setLockResetTime] = useState<string | null>(resetTime);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -154,7 +166,7 @@ export function PlaygroundClient({ isAdmin, email, fullName, avatarUrl }: Playgr
   }
 
   async function sendMessage(content: string, opts?: { systemPrompt?: string }) {
-    if (!content.trim() || loading) return;
+    if (!content.trim() || loading || locked) return;
 
     const optimisticUser: ChatMessage = {
       id: `optimistic-${Date.now()}`,
@@ -179,7 +191,14 @@ export function PlaygroundClient({ isAdmin, email, fullName, avatarUrl }: Playgr
       });
       const data = await res.json();
 
-      if (!res.ok) {
+      if (res.status === 429) {
+        // Out of daily requests — pull the message back out of the thread
+        // (nothing was actually sent) and lock the composer.
+        setMessages((prev) => prev.filter((m) => m.id !== optimisticUser.id));
+        setInput(content);
+        setLocked(true);
+        setLockResetTime(data.resetTime ?? null);
+      } else if (!res.ok) {
         setMessages((prev) => [
           ...prev.filter((m) => m.id !== optimisticUser.id),
           data.userMessage ?? optimisticUser,
@@ -207,6 +226,7 @@ export function PlaygroundClient({ isAdmin, email, fullName, avatarUrl }: Playgr
   }
 
   async function handleSend() {
+    if (locked) return;
     let finalInput = input;
     let systemPrompt: string | undefined;
 
@@ -260,7 +280,7 @@ export function PlaygroundClient({ isAdmin, email, fullName, avatarUrl }: Playgr
   }
 
   async function handleRegenerate() {
-    if (!activeId || loading) return;
+    if (!activeId || loading || locked) return;
     const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
     if (!lastAssistant) return;
 
@@ -587,6 +607,7 @@ export function PlaygroundClient({ isAdmin, email, fullName, avatarUrl }: Playgr
           <div className="border-t border-border/50 bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
             <div className="mx-auto max-w-3xl px-6 py-4">
               <div className="relative flex items-end gap-2 rounded-2xl border border-border/50 bg-card p-2 shadow-glass">
+                {locked && <UsageLockOverlay resetTime={lockResetTime} />}
                 <Button variant="ghost" size="icon" className="shrink-0 rounded-xl hover:bg-accent" disabled>
                   <Paperclip className="h-4 w-4" />
                 </Button>
@@ -600,7 +621,8 @@ export function PlaygroundClient({ isAdmin, email, fullName, avatarUrl }: Playgr
                       handleSend();
                     }
                   }}
-                  placeholder="Type your message..."
+                  placeholder={locked ? "You're out of credit — upgrade to keep chatting" : "Type your message..."}
+                  disabled={locked}
                   className="min-h-[60px] max-h-[200px] resize-none border-0 bg-transparent px-3 py-2 text-sm focus-visible:ring-0 focus-visible:shadow-none"
                   rows={1}
                 />
@@ -609,7 +631,7 @@ export function PlaygroundClient({ isAdmin, email, fullName, avatarUrl }: Playgr
                 </Button>
                 <Button
                   onClick={handleSend}
-                  disabled={loading || !input.trim()}
+                  disabled={loading || locked || !input.trim()}
                   size="icon"
                   className="shrink-0 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
                 >

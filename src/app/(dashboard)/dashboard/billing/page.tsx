@@ -88,7 +88,12 @@ export default async function BillingPage() {
                     ))}
                   </ul>
                   {!isCurrent && plan.price_kobo > 0 && (
-                    <SubscribeButton planId={plan.id} priceKobo={plan.price_kobo} label={`Subscribe to ${plan.name}`} />
+                    <SubscribeButton
+                      planId={plan.id}
+                      priceKobo={plan.price_kobo}
+                      currency={plan.currency}
+                      label={`Subscribe to ${plan.name}`}
+                    />
                   )}
                 </CardContent>
               </Card>

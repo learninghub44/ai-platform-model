@@ -41,7 +41,7 @@ function MessageContentImpl({ content, className }: MessageContentProps) {
   return (
     <div
       className={cn(
-        "prose prose-sm max-w-none break-words",
+        "prose max-w-none break-words [overflow-wrap:anywhere]",
         "prose-p:leading-relaxed prose-p:my-2.5",
         "prose-headings:font-display prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2",
         "prose-a:text-primary prose-a:no-underline hover:prose-a:underline",

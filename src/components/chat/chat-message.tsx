@@ -164,7 +164,7 @@ export function ChatMessageBubble({
                   )}
                 </div>
               )}
-              <p className="whitespace-pre-wrap text-[15px] leading-relaxed">{message.content}</p>
+              <p className="whitespace-pre-wrap break-words text-[1rem] leading-relaxed [overflow-wrap:anywhere]">{message.content}</p>
             </div>
           ) : (
             <div
@@ -175,7 +175,7 @@ export function ChatMessageBubble({
                   : "bg-card border border-border/50"
               )}
             >
-              {message.content && <MessageContent content={visible} className="text-[15px]" />}
+              {message.content && <MessageContent content={visible} className="text-[1rem] [overflow-wrap:anywhere]" />}
               {!done && (
                 <span className="ml-0.5 inline-block h-4 w-[2px] animate-pulse bg-primary align-middle" />
               )}

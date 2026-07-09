@@ -249,7 +249,7 @@ export function ChatComposer({
                 : "Message the assistant..."
             }
             disabled={locked}
-            className="min-h-[56px] max-h-[240px] resize-none border-0 bg-transparent px-4 pt-4 pb-2 text-[15px] leading-relaxed focus-visible:ring-0 focus-visible:shadow-none"
+            className="min-h-[56px] max-h-[240px] resize-none border-0 bg-transparent px-4 pt-4 pb-2 text-[1rem] leading-relaxed focus-visible:ring-0 focus-visible:shadow-none"
             rows={1}
           />
 

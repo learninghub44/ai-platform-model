@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { generateWithFailover } from "@/lib/ai";
 import { webSearch, formatSearchContext } from "@/lib/ai/search";
 import type { AIMessage, AIContentPart } from "@/lib/ai/types";
@@ -50,35 +50,64 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "conversationId is required to regenerate" }, { status: 400 });
   }
 
-  // Check daily limits
-  const { data: profile, error: profileError } = await supabase
+  // Daily-limit check reads/writes public.profiles via the SERVICE ROLE
+  // client rather than the user's session-scoped client. This is an
+  // internal quota check, not a user-facing read, so it should never be
+  // able to fail due to RLS policy misconfiguration or a lost table GRANT
+  // (this project has hit that class of bug on profiles/conversations/etc
+  // more than once — see 0005_fix_table_grants.sql, 0008_ensure_grants.sql).
+  // Bypassing RLS here removes an entire failure mode permanently: as long
+  // as the row exists, this lookup succeeds regardless of policy/grant state.
+  const serviceClient = createServiceRoleClient();
+
+  // Self-heal: if the profiles row is somehow still missing for this user
+  // (e.g. the handle_new_user() trigger didn't fire, or ran before this
+  // migration existed), create it here instead of failing the request.
+  let { data: profile, error: profileError } = await serviceClient
     .from("profiles")
     .select("daily_requests_count, daily_requests_limit, daily_requests_reset")
     .eq("id", user.id)
     .single();
 
   if (profileError || !profile) {
-    console.error("profile lookup failed", {
+    console.error("profile lookup failed, attempting self-heal", {
       userId: user.id,
       code: profileError?.code,
       message: profileError?.message,
-      details: profileError?.details,
-      hint: profileError?.hint,
     });
-    return NextResponse.json(
-      {
-        error: "Profile not found",
-        // TEMP diagnostic fields — remove once root cause is fixed
-        debugCode: profileError?.code ?? null,
-        debugMessage: profileError?.message ?? null,
-        debugHint: profileError?.hint ?? null,
-      },
-      { status: 404 }
-    );
+
+    const { data: created, error: createError } = await serviceClient
+      .from("profiles")
+      .insert({ id: user.id, email: user.email ?? "" })
+      .select("daily_requests_count, daily_requests_limit, daily_requests_reset")
+      .single();
+
+    if (createError || !created) {
+      console.error("profile self-heal failed", {
+        userId: user.id,
+        code: createError?.code,
+        message: createError?.message,
+        details: createError?.details,
+        hint: createError?.hint,
+      });
+      return NextResponse.json(
+        {
+          error: "Could not load or create your profile. Please try again or contact support.",
+          debugCode: createError?.code ?? profileError?.code ?? null,
+          debugMessage: createError?.message ?? profileError?.message ?? null,
+        },
+        { status: 500 }
+      );
+    }
+
+    // Wallet row too, matching what handle_new_user() would have done.
+    await serviceClient.from("wallets").insert({ user_id: user.id, balance_kobo: 0 }).select().single();
+
+    profile = created;
   }
 
   if (profile.daily_requests_reset && new Date(profile.daily_requests_reset) <= new Date()) {
-    await supabase
+    await serviceClient
       .from("profiles")
       .update({
         daily_requests_count: 0,
@@ -194,7 +223,7 @@ export async function POST(req: NextRequest) {
       onAttempt: (a) => attempts.push(a),
     });
 
-    await supabase.rpc("increment_daily_usage", { user_id: user.id });
+    await serviceClient.rpc("increment_daily_usage", { user_id: user.id });
 
     await supabase.from("ai_usage_logs").insert(
       attempts.map((a) => ({

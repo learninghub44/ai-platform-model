@@ -11,11 +11,16 @@ export default async function DashboardGroupLayout({ children }: { children: Rea
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("role, full_name, avatar_url, onboarding_completed_at")
     .eq("id", user.id)
     .single();
+
+  if (error) {
+    console.error("Failed to load profile in DashboardGroupLayout:", error.message);
+    throw new Error(`Could not load your profile (${error.message}). Please try again or contact support.`);
+  }
 
   if (!profile?.onboarding_completed_at) redirect("/onboarding");
 

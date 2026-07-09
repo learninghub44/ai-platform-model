@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
@@ -24,6 +26,11 @@ import {
   Eraser,
   Share2,
   MoreHorizontal,
+  LayoutDashboard,
+  CreditCard,
+  Settings,
+  ShieldCheck,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,12 +40,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { createClient } from "@/lib/supabase/client";
 import { PROMPT_TEMPLATES, getTemplateById } from "@/lib/ai/templates";
 import { cn } from "@/lib/utils";
 import { ConversationSidebar } from "@/components/chat/conversation-sidebar";
 import { ChatMessageBubble } from "@/components/chat/chat-message";
 import { ShareDialog } from "@/components/chat/share-dialog";
+import { Logo } from "@/components/logo";
 import type { Conversation, ChatMessage } from "@/lib/types/chat";
+
+const APP_NAV_ITEMS = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
+  { href: "/dashboard/settings", label: "Settings", icon: Settings },
+];
 
 const ICON_MAP: Record<string, any> = {
   Document: FileText,
@@ -55,7 +71,27 @@ const ICON_MAP: Record<string, any> = {
   Search,
 };
 
-export default function AiPlaygroundPage() {
+interface PlaygroundClientProps {
+  isAdmin: boolean;
+  email: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+}
+
+export function PlaygroundClient({ isAdmin, email, fullName, avatarUrl }: PlaygroundClientProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [signingOut, setSigningOut] = useState(false);
+  const initials = (fullName || email || "?").slice(0, 2).toUpperCase();
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
+
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -351,7 +387,7 @@ export default function AiPlaygroundPage() {
         />
       )}
 
-      {/* Sidebar — conversation history */}
+      {/* Sidebar — logo, conversation history, and app navigation */}
       <aside
         className={cn(
           "border-r border-border/50 bg-background/95 backdrop-blur-xl transition-all duration-300 ease-out overflow-hidden flex flex-col",
@@ -359,7 +395,13 @@ export default function AiPlaygroundPage() {
           sidebarOpen ? "w-72" : "w-0 border-r-0 md:w-0"
         )}
       >
-        <div className="p-4">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-border/50 px-4">
+          <Link href="/dashboard">
+            <Logo />
+          </Link>
+        </div>
+
+        <div className="p-4 pb-2">
           <Button
             onClick={handleNewChat}
             className="w-full justify-start gap-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl shadow-sm"
@@ -369,7 +411,7 @@ export default function AiPlaygroundPage() {
           </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 pb-4">
+        <div className="flex-1 overflow-y-auto px-3 pb-2">
           <ConversationSidebar
             conversations={conversations}
             activeId={activeId}
@@ -379,6 +421,60 @@ export default function AiPlaygroundPage() {
             onShare={openShareDialog}
             onDelete={handleDelete}
           />
+        </div>
+
+        {/* App navigation — this is the only nav on this page, so it lives
+            in the same sidebar as chat history rather than a separate,
+            overlapping app shell. */}
+        <nav className="shrink-0 space-y-1 border-t border-border/50 px-3 py-3">
+          {APP_NAV_ITEMS.map((item) => {
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200",
+                  active ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                )}
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                {item.label}
+              </Link>
+            );
+          })}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200"
+            >
+              <ShieldCheck className="h-4 w-4 shrink-0" />
+              Admin
+            </Link>
+          )}
+        </nav>
+
+        <div className="shrink-0 border-t border-border/50 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8 ring-2 ring-border/50">
+              <AvatarImage src={avatarUrl ?? undefined} alt={fullName ?? email} />
+              <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">{fullName || "Your account"}</p>
+              <p className="truncate text-xs text-muted-foreground">{email}</p>
+            </div>
+            <button
+              onClick={handleSignOut}
+              disabled={signingOut}
+              aria-label="Sign out"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-destructive transition-colors disabled:opacity-60"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </aside>
 

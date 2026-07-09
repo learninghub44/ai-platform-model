@@ -56,6 +56,35 @@ const APP_NAV_ITEMS = [
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
+// Unsent-message drafts are cached in localStorage per conversation so a
+// refresh, tab close, or accidental navigation away doesn't lose what the
+// user was typing. "new" is used for the not-yet-created-conversation case.
+const DRAFT_PREFIX = "xetu-ai:draft:";
+
+function loadDraft(conversationId: string | null): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.localStorage.getItem(`${DRAFT_PREFIX}${conversationId ?? "new"}`) ?? "";
+  } catch {
+    // Private browsing / quota exceeded / storage disabled — degrade silently.
+    return "";
+  }
+}
+
+function saveDraft(conversationId: string | null, value: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const key = `${DRAFT_PREFIX}${conversationId ?? "new"}`;
+    if (value.trim()) {
+      window.localStorage.setItem(key, value);
+    } else {
+      window.localStorage.removeItem(key);
+    }
+  } catch {
+    // Ignore — drafts are a nice-to-have, not critical path.
+  }
+}
+
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -153,7 +182,16 @@ export function PlaygroundClient({
     if (window.matchMedia("(min-width: 768px)").matches) setSidebarOpen(true);
     loadConversations();
     loadFolders();
+    // Restore whatever draft was cached for the "new chat" composer.
+    setInput(loadDraft(null));
   }, [loadConversations, loadFolders]);
+
+  // Cache the current draft to localStorage as the user types, scoped to
+  // whichever conversation (or "new chat") is active.
+  useEffect(() => {
+    const timeout = setTimeout(() => saveDraft(activeId, input), 300);
+    return () => clearTimeout(timeout);
+  }, [input, activeId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -177,6 +215,7 @@ export function PlaygroundClient({
     } finally {
       setHistoryLoading(false);
     }
+    setInput(loadDraft(id));
   }
 
   function handleNewChat() {
@@ -185,6 +224,7 @@ export function PlaygroundClient({
     setSelectedTemplate(null);
     setInput("");
     setAttachments([]);
+    saveDraft(null, ""); // explicit reset clears any stale "new chat" draft
     if (!window.matchMedia("(min-width: 768px)").matches) setSidebarOpen(false);
   }
 
@@ -375,11 +415,16 @@ export function PlaygroundClient({
     let finalInput = input;
     let systemPrompt: string | undefined;
 
+    // If a template is selected, the composer already contains the
+    // template text (with placeholders) that the user has edited in place.
+    // We only need the system prompt here — the input itself is the final
+    // message. (Previously this replaced every {placeholder} with the
+    // *entire* input string, which duplicated the whole message once per
+    // placeholder and produced the overlapping/repeated text bug.)
     if (selectedTemplate) {
       const template = getTemplateById(selectedTemplate);
       if (template) {
         systemPrompt = template.systemPrompt;
-        finalInput = template.userPromptTemplate.replace(/\{[^}]+\}/g, input);
       }
     }
 
